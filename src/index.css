@@ -1,0 +1,159 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Primary: Deep Blue */
+    --primary: 215 70% 42%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Accent: Bright Blue */
+    --accent: 210 65% 55%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Background: Light cream */
+    --background: 35 25% 95%;
+    --foreground: 220 25% 18%;
+    
+    /* Muted tones */
+    --muted: 210 40% 96%;
+    --muted-foreground: 0 0% 45%;
+    
+    /* Card colors */
+    --card: 0 0% 100%;
+    --card-foreground: 215 70% 42%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 70% 42%;
+    --secondary: 35 15% 92%;
+    --secondary-foreground: 215 70% 42%;
+    
+    /* Border & Input */
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 210 65% 55%;
+    
+    /* Destructive */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Radius & Shadows */
+    --radius: 0.5rem;
+    --shadow-soft: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-medium: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --shadow-strong: 0 10px 25px rgb(0 0 0 / 0.15);
+  }
+}
+
+@layer base {
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    line-height: 1.6;
+  }
+  
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 4rem;              /* 64px desktop */
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    @apply text-primary;
+  }
+  
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;              /* 48px desktop */
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    @apply text-primary;
+  }
+  
+  h3 {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 1.5rem;            /* 24px */
+    font-weight: 600;
+    line-height: 1.3;
+    @apply text-primary;
+  }
+  
+  /* Mobile Typography */
+  @media (max-width: 768px) {
+    h1 { 
+      font-size: 2.25rem;         /* 36px mobile */
+      line-height: 1.2;
+    }
+    
+    h2 { 
+      font-size: 2rem;            /* 32px mobile */
+      line-height: 1.25;
+    }
+    
+    h3 {
+      font-size: 1.25rem;         /* 20px mobile */
+    }
+  }
+}
+
+@layer utilities {
+  .container-custom {
+    @apply px-6 lg:px-12;
+  }
+  
+  .content-max {
+    @apply max-w-3xl;
+  }
+
+  /* Mobile section spacing optimization */
+  @media (max-width: 768px) {
+    section {
+      @apply py-16;
+    }
+    
+    /* Reduce large gaps on mobile */
+    .space-y-8 > * + * {
+      margin-top: 1.5rem;
+    }
+  }
+  
+  /* Smooth scroll offset for fixed header */
+  [id] {
+    scroll-margin-top: 6rem;
+  }
+  
+  /* Focus states for accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2;
+  }
+  
+  /* Subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: rgba(79, 134, 198, 0.2);
+    border-radius: 10px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(79, 134, 198, 0.4);
+  }
+  
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(79, 134, 198, 0.2) transparent;
+  }
+}
