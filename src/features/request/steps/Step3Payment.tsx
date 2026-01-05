@@ -1,7 +1,6 @@
 import type { UseFormRegister, FieldErrors } from 'react-hook-form'
-import { RequestFormData } from '../request.types'
+import type { RequestFormData } from '../request.types'
 import Input from '../../../components/ui/Input'
-import TextArea from '../../../components/ui/TextArea'
 
 interface Step3PaymentProps {
   register: UseFormRegister<RequestFormData>
@@ -80,13 +79,19 @@ export default function Step3Payment({ register, errors }: Step3PaymentProps) {
             required
           />
 
-          <TextArea
-            label="Account Number / Details"
-            placeholder="Account Number: 0123456789&#10;Sort Code (if applicable): 123456"
-            {...register('schoolAccountDetails')}
-            error={errors.schoolAccountDetails?.message}
+          <Input
+            label="Account Number"
+            placeholder="0123456789"
+            {...register('schoolAccountNumber')}
+            error={errors.schoolAccountNumber?.message}
             required
-            rows={3}
+          />
+
+          <Input
+            label="Sort Code / Additional Details (Optional)"
+            placeholder="123456 or Branch name"
+            {...register('schoolSortCode')}
+            error={errors.schoolSortCode?.message}
           />
         </div>
       </div>

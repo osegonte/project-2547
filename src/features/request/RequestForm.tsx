@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
-import { RequestFormData } from './request.types'
+import type { RequestFormData } from './request.types'
 import { step1Schema, step2Schema, step3Schema, step4Schema, step5Schema } from './request.schema'
+import { requestService } from './request.service'
 import Step1Personal from './steps/Step1Personal'
 import Step2School from './steps/Step2School'
 import Step3Payment from './steps/Step3Payment'
@@ -24,6 +25,7 @@ export default function RequestForm() {
     handleSubmit,
     watch,
     trigger,
+    setValue,
     formState: { errors }
   } = useForm<RequestFormData>({
     resolver: zodResolver(
@@ -58,14 +60,17 @@ export default function RequestForm() {
     setIsSubmitting(true)
     
     try {
-      // TODO: Replace with actual Supabase submission
-      console.log('Form submitted:', data)
+      console.log('Submitting form data:', data)
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // Submit to Supabase
+      const result = await requestService.submitRequest(data)
       
-      // Navigate to success page
-      navigate('/submitted')
+      if (result.success) {
+        console.log('Request submitted successfully! ID:', result.id)
+        navigate('/submitted')
+      } else {
+        alert(`Submission failed: ${result.error || 'Unknown error'}`)
+      }
     } catch (error) {
       console.error('Submission error:', error)
       alert('There was an error submitting your request. Please try again.')
@@ -83,7 +88,7 @@ export default function RequestForm() {
       case 3:
         return <Step3Payment register={register} errors={errors} />
       case 4:
-        return <Step4Documents register={register} errors={errors} />
+        return <Step4Documents register={register} errors={errors} setValue={setValue} />
       case 5:
         return <Step5Confirm watch={watch} register={register} errors={errors} />
       default:

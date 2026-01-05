@@ -1,5 +1,5 @@
 import type { UseFormRegister, FieldErrors } from 'react-hook-form'
-import { RequestFormData } from '../request.types'
+import type { RequestFormData } from '../request.types'
 import Input from '../../../components/ui/Input'
 
 interface Step1PersonalProps {

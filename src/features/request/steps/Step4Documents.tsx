@@ -1,13 +1,15 @@
-import type { UseFormRegister, FieldErrors } from 'react-hook-form'
+import { useState } from 'react'
+import type { UseFormRegister, FieldErrors, UseFormSetValue } from 'react-hook-form'
+import type { RequestFormData } from '../request.types'
 import { Upload, FileText, X } from 'lucide-react'
-import { RequestFormData } from '../request.types'
 
 interface Step4DocumentsProps {
   register: UseFormRegister<RequestFormData>
   errors: FieldErrors<RequestFormData>
+  setValue: UseFormSetValue<RequestFormData>
 }
 
-export default function Step4Documents({ register, errors }: Step4DocumentsProps) {
+export default function Step4Documents({ register, errors, setValue }: Step4DocumentsProps) {
   const [admissionFileName, setAdmissionFileName] = useState<string>('')
   const [invoiceFileName, setInvoiceFileName] = useState<string>('')
 
@@ -16,8 +18,10 @@ export default function Step4Documents({ register, errors }: Step4DocumentsProps
     if (file) {
       if (type === 'admission') {
         setAdmissionFileName(file.name)
+        setValue('admissionLetter', file)
       } else {
         setInvoiceFileName(file.name)
+        setValue('feeInvoice', file)
       }
     }
   }
@@ -25,8 +29,10 @@ export default function Step4Documents({ register, errors }: Step4DocumentsProps
   const clearFile = (type: 'admission' | 'invoice') => {
     if (type === 'admission') {
       setAdmissionFileName('')
+      setValue('admissionLetter', null)
     } else {
       setInvoiceFileName('')
+      setValue('feeInvoice', null)
     }
   }
 
@@ -60,7 +66,6 @@ export default function Step4Documents({ register, errors }: Step4DocumentsProps
               type="file"
               className="hidden"
               accept=".pdf,.jpg,.jpeg,.png"
-              {...register('admissionLetter')}
               onChange={(e) => handleFileChange(e, 'admission')}
             />
           </label>
@@ -102,7 +107,6 @@ export default function Step4Documents({ register, errors }: Step4DocumentsProps
               type="file"
               className="hidden"
               accept=".pdf,.jpg,.jpeg,.png"
-              {...register('feeInvoice')}
               onChange={(e) => handleFileChange(e, 'invoice')}
             />
           </label>

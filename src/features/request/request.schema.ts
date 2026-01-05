@@ -11,7 +11,7 @@ export const step1Schema = z.object({
 export const step2Schema = z.object({
   schoolName: z.string().min(3, 'School name is required'),
   program: z.string().min(3, 'Program/course is required'),
-  yearOfStudy: z.string().min(1, 'Year of study is required'),
+  studySemester: z.string().min(1, 'Study semester is required'),
 })
 
 // Step 3: Payment Details
@@ -19,11 +19,12 @@ export const step3Schema = z.object({
   amount: z.string().min(1, 'Amount is required'),
   currency: z.enum(['NGN', 'USD']),
   schoolAccountName: z.string().min(3, 'School account name is required'),
-  schoolAccountDetails: z.string().min(5, 'Account details are required (account number, etc.)'),
+  schoolAccountNumber: z.string().min(5, 'Account number is required'),
+  schoolSortCode: z.string().optional(),
   schoolBankName: z.string().min(2, 'Bank name is required'),
 })
 
-// Step 4: Documents (validation happens separately since files are optional initially)
+// Step 4: Documents
 export const step4Schema = z.object({
   admissionLetter: z.any().optional(),
   feeInvoice: z.any().optional(),
@@ -34,7 +35,7 @@ export const step5Schema = z.object({
   additionalNotes: z.string().optional(),
 })
 
-// Combined schema for full form
+// Combined schema
 export const fullRequestSchema = step1Schema
   .merge(step2Schema)
   .merge(step3Schema)

@@ -1,7 +1,6 @@
-import { UseFormWatch } from 'react-hook-form'
-import { RequestFormData } from '../request.types'
+import type { UseFormWatch, UseFormRegister, FieldErrors } from 'react-hook-form'
+import type { RequestFormData } from '../request.types'
 import TextArea from '../../../components/ui/TextArea'
-import { UseFormRegister, FieldErrors } from 'react-hook-form'
 
 interface Step5ConfirmProps {
   watch: UseFormWatch<RequestFormData>
@@ -65,8 +64,8 @@ export default function Step5Confirm({ watch, register, errors }: Step5ConfirmPr
             <p className="font-medium text-foreground">{formData.program || '-'}</p>
           </div>
           <div>
-            <p className="text-muted-foreground mb-1">Year of Study</p>
-            <p className="font-medium text-foreground">{formData.yearOfStudy || '-'}</p>
+            <p className="text-muted-foreground mb-1">Study Semester</p>
+            <p className="font-medium text-foreground">{formData.studySemester || '-'}</p>
           </div>
         </div>
       </div>
@@ -95,9 +94,15 @@ export default function Step5Confirm({ watch, register, errors }: Step5ConfirmPr
             <p className="font-medium text-foreground">{formData.schoolAccountName || '-'}</p>
           </div>
           <div>
-            <p className="text-muted-foreground mb-1">Account Details</p>
-            <p className="font-medium text-foreground whitespace-pre-wrap">{formData.schoolAccountDetails || '-'}</p>
+            <p className="text-muted-foreground mb-1">Account Number</p>
+            <p className="font-medium text-foreground font-mono">{formData.schoolAccountNumber || '-'}</p>
           </div>
+          {formData.schoolSortCode && (
+            <div>
+              <p className="text-muted-foreground mb-1">Sort Code / Additional Info</p>
+              <p className="font-medium text-foreground">{formData.schoolSortCode}</p>
+            </div>
+          )}
         </div>
       </div>
 
