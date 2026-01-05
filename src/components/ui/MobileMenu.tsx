@@ -4,9 +4,10 @@ import { useNavigate, useLocation } from 'react-router-dom'
 interface MobileMenuProps {
   isOpen: boolean
   onClose: () => void
+  onOpenModal: () => void
 }
 
-export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
+export default function MobileMenu({ isOpen, onClose, onOpenModal }: MobileMenuProps) {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -32,6 +33,11 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       navigate(href)
       onClose()
     }
+  }
+
+  const handleSubmitClick = () => {
+    onClose()
+    onOpenModal()
   }
 
   return (
@@ -82,7 +88,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               <div className="h-px bg-border my-4" />
               
               <button
-                onClick={() => handleNavClick('/request')}
+                onClick={handleSubmitClick}
                 className="px-4 py-3 bg-accent text-white hover:bg-accent/90 rounded-lg transition-all font-semibold text-center"
               >
                 Submit Request

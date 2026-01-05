@@ -3,7 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import MobileMenu from '../ui/MobileMenu'
 
-export default function Header() {
+interface HeaderProps {
+  onOpenModal: () => void
+}
+
+export default function Header({ onOpenModal }: HeaderProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -98,13 +102,12 @@ export default function Header() {
           
           {/* Right Side - Submit Button + Mobile Menu */}
           <div className="flex items-center gap-4">
-            <a 
-              href="/request"
-              onClick={(e) => handleNavClick(e, '/request')}
+            <button
+              onClick={onOpenModal}
               className="hidden md:flex items-center gap-2 h-10 px-6 bg-accent hover:bg-accent/90 text-white font-semibold rounded-lg shadow-medium transition-all"
             >
               Submit Request
-            </a>
+            </button>
 
             <button
               onClick={() => setIsMobileMenuOpen(true)}
@@ -120,7 +123,11 @@ export default function Header() {
         </div>
       </motion.header>
 
-      <MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      <MobileMenu 
+        isOpen={isMobileMenuOpen} 
+        onClose={() => setIsMobileMenuOpen(false)}
+        onOpenModal={onOpenModal}
+      />
     </>
   )
 }

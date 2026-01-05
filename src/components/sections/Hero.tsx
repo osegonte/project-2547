@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -17,9 +16,11 @@ const staggerContainer = {
   }
 }
 
-export default function Hero() {
-  const navigate = useNavigate()
+interface HeroProps {
+  onOpenModal: () => void
+}
 
+export default function Hero({ onOpenModal }: HeroProps) {
   return (
     <section className="min-h-screen flex items-center relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary/80">
       {/* Subtle pattern overlay (optional) */}
@@ -78,7 +79,7 @@ export default function Hero() {
               className="pt-4"
             >
               <motion.button
-                onClick={() => navigate('/request')}
+                onClick={onOpenModal}
                 whileHover={{ 
                   y: -2, 
                   boxShadow: '0 10px 25px rgba(79, 134, 198, 0.35)' 

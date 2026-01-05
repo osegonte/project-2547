@@ -33,7 +33,11 @@ const steps = [
   }
 ]
 
-export default function HowItWorks() {
+interface HowItWorksProps {
+  onOpenModal: () => void
+}
+
+export default function HowItWorks({ onOpenModal }: HowItWorksProps) {
   return (
     <section id="how-it-works" className="py-24 lg:py-32 bg-white">
       <div className="container-custom">
@@ -108,15 +112,15 @@ export default function HowItWorks() {
           variants={fadeInUp}
           className="text-center mt-16"
         >
-          <a
-            href="/request"
+          <button
+            onClick={onOpenModal}
             className="inline-flex items-center gap-2 h-14 px-10 bg-accent hover:bg-accent/90 text-white font-semibold rounded-lg shadow-medium transition-all hover:shadow-strong"
           >
             Get Started Now
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </a>
+          </button>
         </motion.div>
       </div>
     </section>

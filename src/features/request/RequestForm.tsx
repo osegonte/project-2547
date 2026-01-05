@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
 import type { RequestFormData } from './request.types'
-import { step1Schema, step2Schema, step3Schema, step4Schema, step5Schema } from './request.schema'
+import { fullRequestSchema } from './request.schema'
 import { requestService } from './request.service'
 import Step1Personal from './steps/Step1Personal'
 import Step2School from './steps/Step2School'
@@ -15,7 +15,20 @@ import { ChevronLeft, ChevronRight, Send } from 'lucide-react'
 
 const TOTAL_STEPS = 5
 
-export default function RequestForm() {
+// Define which fields to validate for each step
+const STEP_FIELDS = {
+  1: ['fullName', 'email', 'phone'] as const,
+  2: ['schoolName', 'program', 'studySemester'] as const,
+  3: ['amount', 'currency', 'schoolAccountName', 'schoolAccountNumber', 'schoolBankName'] as const,
+  4: [] as const, // Documents are optional
+  5: [] as const, // Additional notes are optional
+}
+
+interface RequestFormProps {
+  onSuccess?: () => void // Optional callback for modal usage
+}
+
+export default function RequestForm({ onSuccess }: RequestFormProps) {
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -28,13 +41,7 @@ export default function RequestForm() {
     setValue,
     formState: { errors }
   } = useForm<RequestFormData>({
-    resolver: zodResolver(
-      currentStep === 1 ? step1Schema :
-      currentStep === 2 ? step2Schema :
-      currentStep === 3 ? step3Schema :
-      currentStep === 4 ? step4Schema :
-      step5Schema
-    ),
+    resolver: zodResolver(fullRequestSchema),
     mode: 'onChange',
     defaultValues: {
       currency: 'NGN'
@@ -42,7 +49,17 @@ export default function RequestForm() {
   })
 
   const handleNext = async () => {
-    const isValid = await trigger()
+    // Validate only the fields for the current step
+    const fieldsToValidate = STEP_FIELDS[currentStep as keyof typeof STEP_FIELDS]
+    
+    let isValid = true
+    if (fieldsToValidate.length > 0) {
+      isValid = await trigger(fieldsToValidate as any)
+    }
+    
+    console.log(`Step ${currentStep} validation:`, isValid)
+    console.log('Current form data:', watch())
+    
     if (isValid && currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -57,22 +74,65 @@ export default function RequestForm() {
   }
 
   const onSubmit = async (data: RequestFormData) => {
+    console.log('=== FORM SUBMISSION DEBUG ===')
+    console.log('📋 Full form data:', data)
+    console.log('📋 Data keys:', Object.keys(data))
+    console.log('📋 Personal Info:', {
+      fullName: data.fullName,
+      email: data.email,
+      phone: data.phone
+    })
+    console.log('📋 School Info:', {
+      schoolName: data.schoolName,
+      program: data.program,
+      studySemester: data.studySemester
+    })
+    console.log('📋 Payment Info:', {
+      amount: data.amount,
+      currency: data.currency,
+      schoolAccountName: data.schoolAccountName,
+      schoolAccountNumber: data.schoolAccountNumber,
+      schoolBankName: data.schoolBankName
+    })
+    console.log('📋 Files:', {
+      admissionLetter: data.admissionLetter,
+      feeInvoice: data.feeInvoice
+    })
+    console.log('============================')
+    
     setIsSubmitting(true)
     
     try {
-      console.log('Submitting form data:', data)
+      // Validate all fields before submission
+      const isValid = await trigger()
+      
+      if (!isValid) {
+        console.error('❌ Form validation failed:', errors)
+        alert('Please check all fields and try again.')
+        setIsSubmitting(false)
+        return
+      }
+      
+      console.log('✅ Form validation passed, submitting to Supabase...')
       
       // Submit to Supabase
       const result = await requestService.submitRequest(data)
       
       if (result.success) {
-        console.log('Request submitted successfully! ID:', result.id)
+        console.log('✅ Request submitted successfully! ID:', result.id)
+        
+        // If onSuccess callback is provided (modal usage), call it
+        // Otherwise navigate to success page (standalone page usage)
+        if (onSuccess) {
+          onSuccess()
+        }
         navigate('/submitted')
       } else {
+        console.error('❌ Submission failed:', result.error)
         alert(`Submission failed: ${result.error || 'Unknown error'}`)
       }
     } catch (error) {
-      console.error('Submission error:', error)
+      console.error('❌ Submission error:', error)
       alert('There was an error submitting your request. Please try again.')
     } finally {
       setIsSubmitting(false)
@@ -97,7 +157,7 @@ export default function RequestForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-muted/30 to-white py-12">
+    <div className="py-12">
       <div className="container-custom max-w-3xl">
         {/* Progress Bar */}
         <div className="mb-8">

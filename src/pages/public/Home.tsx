@@ -2,11 +2,15 @@ import Hero from '../../components/sections/Hero'
 import HowItWorks from '../../components/sections/HowItWorks'
 import Transparency from '../../components/sections/Transparency'
 
-export default function Home() {
+interface HomeProps {
+  onOpenModal: () => void
+}
+
+export default function Home({ onOpenModal }: HomeProps) {
   return (
     <>
-      <Hero />
-      <HowItWorks />
+      <Hero onOpenModal={onOpenModal} />
+      <HowItWorks onOpenModal={onOpenModal} />
       <Transparency />
     </>
   )
