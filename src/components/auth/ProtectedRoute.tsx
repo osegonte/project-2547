@@ -1,13 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { adminAuthService, AdminUser } from '../../features/admin/admin.auth.service'
+import { adminAuthService } from '../../features/admin/admin.auth.service'
+
+// DON'T IMPORT AdminUser - define it inline to avoid import issues
+interface User {
+  id: string
+  email: string
+}
 
 interface ProtectedRouteProps {
   children: React.ReactNode
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const [user, setUser] = useState<AdminUser | null | undefined>(undefined)
+  const [user, setUser] = useState<User | null | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {

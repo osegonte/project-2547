@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { requestService } from '../../features/request/request.service'
 import type { RequestSubmission } from '../../features/request/request.types'
-import { ArrowLeft, Download, CheckCircle, XCircle, DollarSign, FileText } from 'lucide-react'
+import { ArrowLeft, Download, CheckCircle, XCircle, DollarSign, FileText, Archive } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import TextArea from '../../components/ui/TextArea'
 
@@ -39,10 +39,31 @@ export default function RequestDetail() {
     const result = await requestService.updateRequestStatus(id, newStatus, adminNotes)
 
     if (result.success) {
-      alert('Status updated successfully!')
-      loadRequest()
+      // Force a full reload to ensure UI updates
+      await loadRequest()
+      alert(`Status updated to "${newStatus}" successfully!`)
     } else {
       alert(`Failed to update status: ${result.error}`)
+    }
+    setIsUpdating(false)
+  }
+
+  const handleArchive = async (reason: 'rejected' | 'paid') => {
+    if (!request) return
+
+    const reasonText = reason === 'rejected' ? 'rejected' : 'paid'
+    const confirmMessage = `📦 Archive & Delete this ${reasonText} request?\n\nThis will:\n1. Archive to Supabase (archived_requests table)\n2. Delete files from storage\n3. Delete from main database\n\nRequest from: ${request.full_name}\n\nContinue?`
+    
+    if (!confirm(confirmMessage)) return
+
+    setIsUpdating(true)
+    const result = await requestService.archiveRequest(request, reason)
+
+    if (result.success) {
+      alert(`Request archived successfully!\n\nThe request has been moved to the archived_requests table and removed from active requests.`)
+      navigate('/admin/dashboard')
+    } else {
+      alert(`Failed to archive request: ${result.error}`)
     }
     setIsUpdating(false)
   }
@@ -302,6 +323,42 @@ export default function RequestDetail() {
                 </p>
               </div>
             </div>
+
+            {/* Archive Actions */}
+            {(request.status === 'rejected' || request.status === 'paid') && (
+              <div className="bg-white rounded-xl border border-orange-200 p-6">
+                <h3 className="text-lg font-semibold text-orange-600 mb-4">Archive & Clean Up</h3>
+                
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {request.status === 'rejected' 
+                      ? 'Archive this rejected request to keep your database clean.'
+                      : 'Archive this paid request and delete associated files.'
+                    }
+                  </p>
+                  
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-3">
+                    <p className="text-xs text-orange-800">
+                      <strong>This will:</strong>
+                    </p>
+                    <ul className="text-xs text-orange-700 mt-1 space-y-1 ml-4">
+                      <li>✓ Save to archived_requests table</li>
+                      <li>✓ Delete uploaded files from storage</li>
+                      <li>✓ Remove from active requests</li>
+                    </ul>
+                  </div>
+
+                  <Button
+                    onClick={() => handleArchive(request.status as 'rejected' | 'paid')}
+                    disabled={isUpdating}
+                    className="w-full flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700"
+                  >
+                    <Archive className="w-4 h-4" />
+                    Archive & Delete
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

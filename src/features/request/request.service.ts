@@ -3,27 +3,61 @@ import type { RequestFormData, RequestSubmission } from './request.types'
 
 export const requestService = {
   /**
+   * Check if email already has an active request
+   */
+  async checkDuplicate(email: string): Promise<{ isDuplicate: boolean; existingRequest?: RequestSubmission }> {
+    try {
+      console.log('🔍 Checking for duplicate request:', email)
+
+      const { data, error } = await supabase
+        .from('requests')
+        .select('*')
+        .eq('email', email.toLowerCase())
+        .in('status', ['pending', 'approved'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (error) {
+        console.error('❌ Error checking duplicate:', error)
+        return { isDuplicate: false }
+      }
+
+      if (data && data.length > 0) {
+        console.log('⚠️ Duplicate found:', data[0])
+        return { isDuplicate: true, existingRequest: data[0] }
+      }
+
+      console.log('✅ No duplicate found')
+      return { isDuplicate: false }
+    } catch (error) {
+      console.error('❌ Unexpected error checking duplicate:', error)
+      return { isDuplicate: false }
+    }
+  },
+
+  /**
    * Submit a new request with file uploads
    */
   async submitRequest(data: RequestFormData): Promise<{ success: boolean; error?: string; id?: string }> {
     try {
       console.log('🚀 SERVICE: Starting submission with data:', data)
-      console.log('🚀 SERVICE: Data validation check:')
-      console.log('  - fullName:', data.fullName, typeof data.fullName)
-      console.log('  - email:', data.email, typeof data.email)
-      console.log('  - phone:', data.phone, typeof data.phone)
-      console.log('  - schoolName:', data.schoolName, typeof data.schoolName)
-      console.log('  - amount:', data.amount, typeof data.amount)
+
+      // Check for duplicate FIRST
+      const duplicateCheck = await this.checkDuplicate(data.email)
+      
+      if (duplicateCheck.isDuplicate) {
+        console.error('❌ Duplicate submission detected')
+        const existing = duplicateCheck.existingRequest!
+        return { 
+          success: false, 
+          error: `You already have a ${existing.status} request submitted on ${new Date(existing.created_at).toLocaleDateString()}. Please check your email for updates or contact support.`
+        }
+      }
 
       // 1. Upload admission letter if provided
       let admissionLetterUrl: string | undefined
       if (data.admissionLetter) {
         console.log('📄 SERVICE: Uploading admission letter...')
-        console.log('📄 SERVICE: File details:', {
-          name: data.admissionLetter.name,
-          size: data.admissionLetter.size,
-          type: data.admissionLetter.type
-        })
         
         const admissionResult = await this.uploadDocument(
           data.admissionLetter,
@@ -32,7 +66,6 @@ export const requestService = {
         
         if (!admissionResult.success) {
           console.error('❌ SERVICE: Failed to upload admission letter:', admissionResult.error)
-          console.error('❌ SERVICE: Stopping submission - file upload required')
           return { 
             success: false, 
             error: `Failed to upload admission letter: ${admissionResult.error}` 
@@ -40,19 +73,12 @@ export const requestService = {
         }
         admissionLetterUrl = admissionResult.url
         console.log('✅ SERVICE: Admission letter uploaded:', admissionLetterUrl)
-      } else {
-        console.log('⚠️ SERVICE: No admission letter provided')
       }
 
       // 2. Upload fee invoice if provided
       let feeInvoiceUrl: string | undefined
       if (data.feeInvoice) {
         console.log('📄 SERVICE: Uploading fee invoice...')
-        console.log('📄 SERVICE: File details:', {
-          name: data.feeInvoice.name,
-          size: data.feeInvoice.size,
-          type: data.feeInvoice.type
-        })
         
         const invoiceResult = await this.uploadDocument(
           data.feeInvoice,
@@ -61,7 +87,6 @@ export const requestService = {
         
         if (!invoiceResult.success) {
           console.error('❌ SERVICE: Failed to upload fee invoice:', invoiceResult.error)
-          console.error('❌ SERVICE: Stopping submission - file upload required')
           return { 
             success: false, 
             error: `Failed to upload fee invoice: ${invoiceResult.error}` 
@@ -69,14 +94,12 @@ export const requestService = {
         }
         feeInvoiceUrl = invoiceResult.url
         console.log('✅ SERVICE: Fee invoice uploaded:', feeInvoiceUrl)
-      } else {
-        console.log('⚠️ SERVICE: No fee invoice provided')
       }
 
       // 3. Prepare database payload
       const dbPayload = {
         full_name: data.fullName,
-        email: data.email,
+        email: data.email.toLowerCase(), // Store lowercase for consistency
         phone: data.phone,
         school_name: data.schoolName,
         program: data.program,
@@ -93,9 +116,6 @@ export const requestService = {
         status: 'pending'
       }
 
-      console.log('💾 SERVICE: Database payload:', dbPayload)
-
-      // 4. Insert request into database
       console.log('💾 SERVICE: Inserting into Supabase...')
       const { data: requestData, error } = await supabase
         .from('requests')
@@ -105,12 +125,14 @@ export const requestService = {
 
       if (error) {
         console.error('❌ SERVICE: Database insert error:', error)
-        console.error('❌ SERVICE: Error details:', JSON.stringify(error, null, 2))
         return { success: false, error: error.message }
       }
 
       console.log('✅ SERVICE: Successfully inserted into database!')
       console.log('✅ SERVICE: Request ID:', requestData.id)
+
+      // TODO: Trigger email notification Edge Function here
+      // await this.sendConfirmationEmail(requestData)
       
       return { success: true, id: requestData.id }
     } catch (error) {
@@ -128,14 +150,11 @@ export const requestService = {
   ): Promise<{ success: boolean; url?: string; error?: string }> {
     try {
       console.log(`📤 UPLOAD: Starting upload for ${prefix}`)
-      console.log(`📤 UPLOAD: File name: ${file.name}`)
-      console.log(`📤 UPLOAD: File size: ${file.size} bytes (${(file.size / 1024 / 1024).toFixed(2)} MB)`)
-      console.log(`📤 UPLOAD: File type: ${file.type}`)
 
       // Check file size (max 5MB)
-      const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+      const maxSize = 5 * 1024 * 1024
       if (file.size > maxSize) {
-        console.error(`❌ UPLOAD: File too large (${(file.size / 1024 / 1024).toFixed(2)} MB). Max size is 5MB`)
+        console.error(`❌ UPLOAD: File too large`)
         return { success: false, error: 'File size exceeds 5MB limit' }
       }
 
@@ -144,77 +163,69 @@ export const requestService = {
       const timestamp = Date.now()
       const random = Math.random().toString(36).substring(7)
       const fileName = `${prefix}-${timestamp}-${random}.${fileExt}`
-      const filePath = `${fileName}`
 
-      console.log(`📤 UPLOAD: Generated file path: ${filePath}`)
-
-      // Test bucket access first
-      console.log('📤 UPLOAD: Testing bucket access...')
-      const { data: bucketTest, error: bucketError } = await supabase.storage
-        .from('request-documents')
-        .list('', { limit: 1 })
-
-      if (bucketError) {
-        console.error('❌ UPLOAD: Cannot access bucket:', bucketError)
-        return { 
-          success: false, 
-          error: `Storage bucket access denied: ${bucketError.message}. Check RLS policies.` 
-        }
-      }
-      console.log('✅ UPLOAD: Bucket accessible')
-
-      // Upload file to Supabase Storage
-      console.log('📤 UPLOAD: Starting file upload...')
+      // Upload file
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('request-documents')
-        .upload(filePath, file, {
+        .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false
         })
 
       if (uploadError) {
         console.error('❌ UPLOAD: Upload error:', uploadError)
-        console.error('❌ UPLOAD: Error code:', uploadError.message)
-        console.error('❌ UPLOAD: Error name:', uploadError.name)
-        
-        // Provide helpful error messages
-        if (uploadError.message.includes('row-level security')) {
-          return { 
-            success: false, 
-            error: 'Storage permissions error. Please run the SQL policy fix script.' 
-          }
-        } else if (uploadError.message.includes('Bucket not found')) {
-          return { 
-            success: false, 
-            error: 'Storage bucket "request-documents" does not exist. Please create it in Supabase dashboard.' 
-          }
-        }
-        
         return { success: false, error: uploadError.message }
       }
 
-      console.log('✅ UPLOAD: File uploaded successfully!')
-      console.log('✅ UPLOAD: Upload data:', uploadData)
-
-      // Get public URL (even though bucket is private, we store the path)
+      // Get public URL
       const { data } = supabase.storage
         .from('request-documents')
-        .getPublicUrl(filePath)
+        .getPublicUrl(fileName)
 
-      console.log(`✅ UPLOAD: Public URL generated: ${data.publicUrl}`)
-
+      console.log(`✅ UPLOAD: File uploaded successfully`)
       return { success: true, url: data.publicUrl }
     } catch (error) {
       console.error('❌ UPLOAD: Unexpected error:', error)
-      if (error instanceof Error) {
-        return { success: false, error: error.message }
-      }
       return { success: false, error: 'Failed to upload file' }
     }
   },
 
   /**
-   * Get all requests (for admin dashboard later)
+   * Delete files from storage
+   */
+  async deleteFiles(admissionLetterUrl?: string | null, feeInvoiceUrl?: string | null): Promise<void> {
+    try {
+      const filesToDelete: string[] = []
+
+      // Extract file paths from URLs
+      if (admissionLetterUrl) {
+        const path = admissionLetterUrl.split('/request-documents/')[1]
+        if (path) filesToDelete.push(path)
+      }
+      if (feeInvoiceUrl) {
+        const path = feeInvoiceUrl.split('/request-documents/')[1]
+        if (path) filesToDelete.push(path)
+      }
+
+      if (filesToDelete.length > 0) {
+        console.log('🗑️ Deleting files from storage:', filesToDelete)
+        const { error } = await supabase.storage
+          .from('request-documents')
+          .remove(filesToDelete)
+
+        if (error) {
+          console.error('⚠️ Error deleting files (non-critical):', error)
+        } else {
+          console.log('✅ Files deleted from storage')
+        }
+      }
+    } catch (error) {
+      console.error('⚠️ Error deleting files (non-critical):', error)
+    }
+  },
+
+  /**
+   * Get all requests
    */
   async getAllRequests(): Promise<RequestSubmission[]> {
     const { data, error } = await supabase
@@ -249,26 +260,149 @@ export const requestService = {
   },
 
   /**
-   * Update request status (for admin)
+   * Get request by email and ID (for status checker)
+   */
+  async getRequestByEmailAndId(email: string, requestId: string): Promise<RequestSubmission | null> {
+    const { data, error } = await supabase
+      .from('requests')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .eq('id', requestId)
+      .single()
+
+    if (error) {
+      console.error('Error fetching request:', error)
+      return null
+    }
+
+    return data
+  },
+
+  /**
+   * Update request status
    */
   async updateRequestStatus(
     id: string,
     status: 'pending' | 'approved' | 'rejected' | 'paid',
     adminNotes?: string
   ): Promise<{ success: boolean; error?: string }> {
-    const { error } = await supabase
-      .from('requests')
-      .update({
-        status,
-        admin_notes: adminNotes || null
-      })
-      .eq('id', id)
+    try {
+      console.log(`📝 Updating request ${id} to status: ${status}`)
+      
+      const { data, error } = await supabase
+        .from('requests')
+        .update({
+          status,
+          admin_notes: adminNotes || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+
+      if (error) {
+        console.error('❌ Error updating status:', error)
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ Status updated successfully')
+
+      // TODO: Trigger status update email Edge Function here
+      // await this.sendStatusUpdateEmail(data[0])
+
+      return { success: true }
+    } catch (error) {
+      console.error('❌ Unexpected error updating status:', error)
+      return { success: false, error: 'An unexpected error occurred' }
+    }
+  },
+
+  /**
+   * Archive request to archived_requests table
+   */
+  async archiveRequest(
+    request: RequestSubmission,
+    reason: 'rejected' | 'paid'
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log(`📦 Archiving ${reason} request ${request.id} to Supabase`)
+
+      // Get current admin user email
+      const { data: { user } } = await supabase.auth.getUser()
+      const adminEmail = user?.email || 'unknown'
+
+      // Insert into archived_requests table
+      const { error: archiveError } = await supabase
+        .from('archived_requests')
+        .insert({
+          original_id: request.id,
+          created_at: request.created_at,
+          archived_reason: reason,
+          full_name: request.full_name,
+          email: request.email,
+          phone: request.phone,
+          school_name: request.school_name,
+          program: request.program,
+          study_semester: request.study_semester,
+          amount: request.amount,
+          currency: request.currency,
+          school_account_name: request.school_account_name,
+          school_account_number: request.school_account_number,
+          school_sort_code: request.school_sort_code,
+          school_bank_name: request.school_bank_name,
+          admission_letter_url: request.admission_letter_url,
+          fee_invoice_url: request.fee_invoice_url,
+          additional_notes: request.additional_notes,
+          admin_notes: request.admin_notes,
+          final_status: request.status,
+          archived_by_email: adminEmail
+        })
+
+      if (archiveError) {
+        console.error('❌ Error archiving request:', archiveError)
+        return { success: false, error: archiveError.message }
+      }
+
+      console.log('✅ Request archived to Supabase')
+
+      // Delete associated files from storage
+      await this.deleteFiles(request.admission_letter_url, request.fee_invoice_url)
+
+      // Delete from main requests table
+      const { error: deleteError } = await supabase
+        .from('requests')
+        .delete()
+        .eq('id', request.id)
+
+      if (deleteError) {
+        console.error('❌ Error deleting request:', deleteError)
+        return { 
+          success: false, 
+          error: `Archived but failed to delete: ${deleteError.message}` 
+        }
+      }
+
+      console.log('✅ Request deleted from main table')
+      return { success: true }
+    } catch (error) {
+      console.error('❌ Unexpected error archiving:', error)
+      return { success: false, error: 'An unexpected error occurred' }
+    }
+  },
+
+  /**
+   * Get all archived requests
+   */
+  async getArchivedRequests(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('archived_requests')
+      .select('*')
+      .order('archived_at', { ascending: false })
 
     if (error) {
-      console.error('Error updating status:', error)
-      return { success: false, error: error.message }
+      console.error('Error fetching archived requests:', error)
+      return []
     }
 
-    return { success: true }
+    return data || []
   }
 }

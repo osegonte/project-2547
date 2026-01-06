@@ -5,10 +5,12 @@ import Footer from './components/layout/Footer'
 import Home from './pages/public/Home'
 import Request from './pages/public/Request'
 import Submitted from './pages/public/Submitted'
+import CheckStatus from './pages/public/CheckStatus'
 import DebugPage from './pages/public/DebugPage'
 import AdminLogin from './pages/admin/AdminLogin'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import RequestDetail from './pages/admin/RequestDetail'
+import ArchivedRequests from './pages/admin/ArchivedRequests'
 import RequestModal from './components/ui/RequestModal'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 
@@ -27,6 +29,7 @@ function App() {
                 <Route path="/" element={<Home onOpenModal={() => setIsModalOpen(true)} />} />
                 <Route path="/request" element={<Request />} />
                 <Route path="/submitted" element={<Submitted />} />
+                <Route path="/check-status" element={<CheckStatus />} />
                 <Route path="/debug" element={<DebugPage />} />
               </Routes>
               <Footer />
@@ -43,6 +46,11 @@ function App() {
           <Route path="/admin/requests/:id" element={
             <ProtectedRoute>
               <RequestDetail />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/archived" element={
+            <ProtectedRoute>
+              <ArchivedRequests />
             </ProtectedRoute>
           } />
         </Routes>

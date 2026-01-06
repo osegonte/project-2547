@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { requestService } from '../../features/request/request.service'
 import { adminAuthService } from '../../features/admin/admin.auth.service'
 import type { RequestSubmission } from '../../features/request/request.types'
-import { Search, Filter, LogOut, Eye } from 'lucide-react'
+import { Search, Filter, LogOut, Eye, Archive } from 'lucide-react'
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'paid'
 
@@ -85,13 +85,22 @@ export default function AdminDashboard() {
                 Manage scholarship requests
               </p>
             </div>
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-destructive transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/admin/archived')}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-accent border border-border hover:border-accent rounded-lg transition-colors"
+              >
+                <Archive className="w-4 h-4" />
+                View Archives
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-destructive transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
       </header>
