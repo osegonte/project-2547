@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { RequestFormData, RequestSubmission } from './request.types'
+import { emailService } from '../../lib/email'  // ✅ EDIT #1: Added email service import
 
 export const requestService = {
   /**
@@ -131,8 +132,13 @@ export const requestService = {
       console.log('✅ SERVICE: Successfully inserted into database!')
       console.log('✅ SERVICE: Request ID:', requestData.id)
 
-      // TODO: Trigger email notification Edge Function here
-      // await this.sendConfirmationEmail(requestData)
+      // ✅ EDIT #2: Send confirmation email (non-blocking)
+      emailService.sendConfirmationEmail(requestData)
+        .catch(err => console.error('Email send failed (non-critical):', err))
+
+      // ✅ EDIT #2: Send admin alert (non-blocking)  
+      emailService.sendAdminAlert(requestData, 'segohopo@gmail.com')
+        .catch(err => console.error('Admin alert failed (non-critical):', err))
       
       return { success: true, id: requestData.id }
     } catch (error) {
@@ -306,8 +312,11 @@ export const requestService = {
 
       console.log('✅ Status updated successfully')
 
-      // TODO: Trigger status update email Edge Function here
-      // await this.sendStatusUpdateEmail(data[0])
+      // ✅ EDIT #3: Send status update email (non-blocking)
+      if (status !== 'pending') {
+        emailService.sendStatusUpdateEmail(data[0])
+          .catch(err => console.error('Status email failed (non-critical):', err))
+      }
 
       return { success: true }
     } catch (error) {
