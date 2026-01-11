@@ -10,27 +10,28 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-foreground mb-2">
+          <label className="block text-sm font-semibold text-foreground mb-2.5">
             {label}
-            {props.required && <span className="text-destructive ml-1">*</span>}
+            {props.required && <span className="text-accent ml-1">*</span>}
           </label>
         )}
         <input
           ref={ref}
-          className={`w-full h-12 px-4 bg-white border rounded-lg transition-all
+          className={`w-full h-12 px-4 py-3 bg-white border rounded-xl transition-all text-sm
             ${error 
-              ? 'border-destructive focus:border-destructive focus:ring-2 focus:ring-destructive/20' 
-              : 'border-border focus:border-accent focus:ring-2 focus:ring-accent/20'
+              ? 'border-destructive/60 focus:border-destructive focus:ring-4 focus:ring-destructive/10' 
+              : 'border-border/60 focus:border-accent focus:ring-4 focus:ring-accent/10'
             }
-            disabled:bg-muted disabled:cursor-not-allowed
+            placeholder:text-muted-foreground/50
+            disabled:bg-muted disabled:cursor-not-allowed disabled:text-muted-foreground
             ${className}
           `}
           {...props}
         />
         {error && (
-          <p className="text-sm text-destructive mt-1 flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <p className="text-xs text-destructive mt-2 flex items-center gap-1.5 font-medium">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             {error}
           </p>

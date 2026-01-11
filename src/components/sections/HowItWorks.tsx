@@ -11,19 +11,19 @@ const steps = [
     icon: FileText,
     number: '01',
     title: 'Submit Your Request',
-    description: 'Fill out a simple form with your school details, amount needed, and upload required documents (admission letter, fee invoice).'
+    description: 'Fill out a simple form with your school details, amount needed, and upload required documents.'
   },
   {
     icon: Search,
     number: '02',
     title: 'We Review & Verify',
-    description: 'Our team reviews your application, verifies your documents, and confirms the payment details with your institution.'
+    description: 'Our team reviews your application, verifies your documents, and confirms payment details with your institution.'
   },
   {
     icon: Building2,
     number: '03',
     title: 'Payment to School',
-    description: 'Once approved, we send the payment directly to your school\'s official account. You never handle the money.'
+    description: 'Once approved, we send payment directly to your school\'s official account. You never handle the money.'
   },
   {
     icon: CheckCircle,
@@ -40,67 +40,72 @@ interface HowItWorksProps {
 export default function HowItWorks({ onOpenModal }: HowItWorksProps) {
   return (
     <section id="how-it-works" className="py-24 lg:py-32 bg-white">
-      <div className="container-custom">
+      <div className="max-w-[1200px] mx-auto px-8 lg:px-12">
+        
+        {/* Section Header - Simplified */}
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
           variants={fadeInUp}
-          className="text-center max-w-3xl mx-auto mb-16"
+          className="text-center mb-16"
         >
-          <p className="text-sm font-semibold text-accent tracking-wider uppercase mb-4">
+          <h2 className="text-sm font-bold text-accent tracking-widest uppercase">
             How It Works
-          </p>
-          <h2 className="text-4xl lg:text-5xl font-serif font-semibold text-primary leading-tight mb-6">
-            Simple, Transparent Process
           </h2>
-          <p className="text-lg text-muted-foreground leading-relaxed">
-            From submission to payment confirmation, we handle everything with complete transparency.
-          </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {steps.map((step, index) => {
-            const Icon = step.icon
-            return (
-              <motion.div
-                key={step.number}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.6, ease: 'easeOut', delay: index * 0.1 }}
-                variants={fadeInUp}
-                className="relative"
-              >
-                {/* Connecting Line - Desktop Only */}
-                {index < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-12 left-full w-full h-0.5 bg-gradient-to-r from-accent/30 to-transparent -translate-x-1/2 z-0" />
-                )}
+        {/* Steps - Single Background Panel */}
+        <div className="relative mb-16">
+          {/* Unified Background Panel */}
+          <div className="absolute inset-0 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent rounded-3xl" />
+          
+          <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6 p-8 lg:p-12">
+            {steps.map((step, index) => {
+              const Icon = step.icon
+              return (
+                <motion.div
+                  key={step.number}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, margin: "-100px" }}
+                  transition={{ duration: 0.6, ease: 'easeOut', delay: index * 0.15 }}
+                  variants={fadeInUp}
+                  className="relative"
+                >
+                  {/* Connecting Line - Desktop Only */}
+                  {index < steps.length - 1 && (
+                    <div className="hidden lg:block absolute top-6 left-[calc(50%+30px)] w-[calc(100%+24px-60px)] h-[2px] bg-gradient-to-r from-accent/40 via-accent/20 to-transparent z-0" />
+                  )}
 
-                <div className="relative bg-white border border-border/50 rounded-2xl p-6 hover:shadow-medium transition-all duration-300 hover:-translate-y-1 z-10">
-                  {/* Number Badge */}
-                  <div className="absolute -top-3 -right-3 w-12 h-12 bg-accent text-white rounded-full flex items-center justify-center font-bold text-sm shadow-medium">
-                    {step.number}
+                  <div className="relative z-10 text-center">
+                    {/* Number Badge */}
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      className="inline-flex items-center justify-center w-10 h-10 bg-accent text-white rounded-full font-bold text-sm shadow-medium mb-5"
+                    >
+                      {step.number}
+                    </motion.div>
+
+                    {/* Icon */}
+                    <div className="inline-flex items-center justify-center w-14 h-14 bg-white rounded-xl shadow-soft text-accent mb-4 border border-border/30">
+                      <Icon className="w-6 h-6" strokeWidth={1.5} />
+                    </div>
+
+                    {/* Content */}
+                    <h3 className="text-base font-semibold text-primary mb-2">
+                      {step.title}
+                    </h3>
+
+                    <p className="text-xs text-muted-foreground leading-relaxed px-2">
+                      {step.description}
+                    </p>
                   </div>
-
-                  {/* Icon */}
-                  <div className="w-14 h-14 bg-accent/10 rounded-xl flex items-center justify-center text-accent mb-4">
-                    <Icon className="w-7 h-7" />
-                  </div>
-
-                  {/* Content */}
-                  <h3 className="text-lg font-semibold text-primary mb-3">
-                    {step.title}
-                  </h3>
-
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {step.description}
-                  </p>
-                </div>
-              </motion.div>
-            )
-          })}
+                </motion.div>
+              )
+            })}
+          </div>
         </div>
 
         {/* CTA */}
@@ -110,15 +115,15 @@ export default function HowItWorks({ onOpenModal }: HowItWorksProps) {
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8, ease: 'easeOut', delay: 0.5 }}
           variants={fadeInUp}
-          className="text-center mt-16"
+          className="text-center"
         >
           <button
             onClick={onOpenModal}
-            className="inline-flex items-center gap-2 h-14 px-10 bg-accent hover:bg-accent/90 text-white font-semibold rounded-lg shadow-medium transition-all hover:shadow-strong"
+            className="inline-flex items-center gap-2 h-14 px-10 bg-accent hover:bg-accent/90 text-white font-semibold rounded-lg shadow-medium transition-all hover:shadow-lg hover:-translate-y-0.5"
           >
             Get Started Now
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </button>
         </motion.div>

@@ -1,8 +1,14 @@
 import { motion } from 'framer-motion'
+import { Shield, Building2, Zap } from 'lucide-react'
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 }
+}
+
+const fadeInRight = {
+  hidden: { opacity: 0, x: 30 },
+  visible: { opacity: 1, x: 0 }
 }
 
 const staggerContainer = {
@@ -10,7 +16,7 @@ const staggerContainer = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.12,
+      staggerChildren: 0.15,
       delayChildren: 0.3
     }
   }
@@ -22,101 +28,144 @@ interface HeroProps {
 
 export default function Hero({ onOpenModal }: HeroProps) {
   return (
-    <section className="min-h-screen flex items-center relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary/80">
-      {/* Subtle pattern overlay (optional) */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-          backgroundSize: '40px 40px'
-        }} />
+    <section className="min-h-screen flex items-center relative overflow-hidden">
+      {/* Background Image - Clear, No Overlay */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src="/hero-bg.jpg"
+          alt="Students studying"
+          className="w-full h-full object-cover"
+        />
       </div>
       
       {/* Content */}
-      <div className="w-full relative z-10 container-custom">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div 
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-            className="space-y-8"
-          >
-            {/* Badge */}
-            <motion.div
-              variants={fadeInUp}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-            >
-              <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-white/90 text-sm font-medium border border-white/20">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Verified School Payments
-              </span>
-            </motion.div>
-
-            {/* Main Headline */}
-            <motion.h1 
-              variants={fadeInUp}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-              className="text-white font-serif"
-            >
-              Education Support,<br />
-              <span className="text-accent">Simplified & Transparent</span>
-            </motion.h1>
+      <div className="w-full relative z-10">
+        <div className="max-w-[1200px] mx-auto px-8 lg:px-12">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center min-h-screen py-32 lg:py-0">
             
-            {/* Subheadline */}
-            <motion.p 
-              variants={fadeInUp}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-              className="text-xl md:text-2xl text-white/90 font-light max-w-2xl mx-auto leading-relaxed"
-            >
-              Submit your school fee request. We review, verify, and pay directly to your institution.
-            </motion.p>
-            
-            {/* CTA Button */}
+            {/* LEFT SIDE - Text Content */}
             <motion.div 
-              variants={fadeInUp}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-              className="pt-4"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="space-y-8 relative z-20"
+              style={{ textShadow: '0 2px 20px rgba(0, 0, 0, 0.4)' }}
             >
-              <motion.button
-                onClick={onOpenModal}
-                whileHover={{ 
-                  y: -2, 
-                  boxShadow: '0 10px 25px rgba(79, 134, 198, 0.35)' 
-                }}
-                whileTap={{ scale: 0.98 }}
-                className="h-14 px-12 bg-white hover:bg-white/95 text-primary font-semibold rounded-lg shadow-medium transition-all text-base"
+              {/* Eyebrow Badge */}
+              <motion.div
+                variants={fadeInUp}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
               >
-                Submit a Request
-              </motion.button>
+                <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-white/90 text-sm font-medium border border-white/20">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Verified School Payments
+                </span>
+              </motion.div>
+
+              {/* Main Headline */}
+              <motion.div
+                variants={fadeInUp}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              >
+                <h1 className="text-white font-serif text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.1] tracking-tight">
+                  Education Support,<br />
+                  <span className="text-accent">Simplified</span>
+                </h1>
+              </motion.div>
+              
+              {/* Subheadline */}
+              <motion.p 
+                variants={fadeInUp}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+                className="text-xl text-white/90 font-light max-w-xl leading-relaxed"
+              >
+                Submit your school fee request. We review, verify, and pay directly to your institution.
+              </motion.p>
+              
+              {/* CTA Buttons */}
+              <motion.div 
+                variants={fadeInUp}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+                className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-2"
+              >
+                <motion.button
+                  onClick={onOpenModal}
+                  whileHover={{ y: -2, boxShadow: '0 12px 30px rgba(0, 0, 0, 0.15)' }}
+                  whileTap={{ scale: 0.98 }}
+                  className="h-14 px-10 bg-white hover:bg-white/95 text-primary font-semibold rounded-lg shadow-lg transition-all text-base"
+                >
+                  Submit a Request
+                </motion.button>
+
+                <button
+                  onClick={() => {
+                    const element = document.querySelector('#how-it-works')
+                    if (element) {
+                      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    }
+                  }}
+                  className="text-white/90 hover:text-white font-medium text-base transition-colors underline decoration-white/40 hover:decoration-white underline-offset-4"
+                >
+                  How it works
+                </button>
+              </motion.div>
             </motion.div>
 
-            {/* Trust Indicators */}
-            <motion.div
-              variants={fadeInUp}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-              className="pt-8 flex flex-wrap items-center justify-center gap-6 text-white/70 text-sm"
+            {/* RIGHT SIDE - Uniform Glassmorphism Card */}
+            <motion.div 
+              variants={fadeInRight}
+              initial="hidden"
+              animate="visible"
+              transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+              className="relative hidden lg:block h-[600px]"
             >
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                <span>Verified Requests Only</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                <span>Direct to Institution</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                <span>Fast Review Process</span>
-              </div>
+              {/* Glassmorphism Card - More Uniform Blur */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, ease: 'easeOut', delay: 0.4 }}
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-[320px] bg-white/15 backdrop-blur-2xl rounded-2xl border border-white/30 shadow-2xl p-8"
+              >
+                <div className="space-y-6">
+                  {/* Microproof Item 1 */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0 border border-white/30">
+                      <Shield className="w-6 h-6 text-white" strokeWidth={2} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white">Verified Requests</p>
+                      <p className="text-xs text-white/70">Document validation</p>
+                    </div>
+                  </div>
+
+                  {/* Microproof Item 2 */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0 border border-white/30">
+                      <Building2 className="w-6 h-6 text-white" strokeWidth={2} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white">Pays Schools Directly</p>
+                      <p className="text-xs text-white/70">No cash handling</p>
+                    </div>
+                  </div>
+
+                  {/* Microproof Item 3 */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0 border border-white/30">
+                      <Zap className="w-6 h-6 text-white" strokeWidth={2} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white">Transparent Process</p>
+                      <p className="text-xs text-white/70">Track your request</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
+
+          </div>
         </div>
       </div>
     </section>

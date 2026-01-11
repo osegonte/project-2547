@@ -10,22 +10,20 @@ import Step2School from './steps/Step2School'
 import Step3Payment from './steps/Step3Payment'
 import Step4Documents from './steps/Step4Documents'
 import Step5Confirm from './steps/Step5Confirm'
-import Button from '../../components/ui/Button'
 import { ChevronLeft, ChevronRight, Send } from 'lucide-react'
 
 const TOTAL_STEPS = 5
 
-// Define which fields to validate for each step
 const STEP_FIELDS = {
   1: ['fullName', 'email', 'phone'] as const,
   2: ['schoolName', 'program', 'studySemester'] as const,
   3: ['amount', 'currency', 'schoolAccountName', 'schoolAccountNumber', 'schoolBankName'] as const,
-  4: [] as const, // Documents are optional
-  5: [] as const, // Additional notes are optional
+  4: [] as const,
+  5: [] as const,
 }
 
 interface RequestFormProps {
-  onSuccess?: () => void // Optional callback for modal usage
+  onSuccess?: () => void
 }
 
 export default function RequestForm({ onSuccess }: RequestFormProps) {
@@ -49,16 +47,12 @@ export default function RequestForm({ onSuccess }: RequestFormProps) {
   })
 
   const handleNext = async () => {
-    // Validate only the fields for the current step
     const fieldsToValidate = STEP_FIELDS[currentStep as keyof typeof STEP_FIELDS]
     
     let isValid = true
     if (fieldsToValidate.length > 0) {
       isValid = await trigger(fieldsToValidate as any)
     }
-    
-    console.log(`Step ${currentStep} validation:`, isValid)
-    console.log('Current form data:', watch())
     
     if (isValid && currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1)
@@ -73,66 +67,29 @@ export default function RequestForm({ onSuccess }: RequestFormProps) {
     }
   }
 
-  const onSubmit = async (data: RequestFormData) => {
-    console.log('=== FORM SUBMISSION DEBUG ===')
-    console.log('📋 Full form data:', data)
-    console.log('📋 Data keys:', Object.keys(data))
-    console.log('📋 Personal Info:', {
-      fullName: data.fullName,
-      email: data.email,
-      phone: data.phone
-    })
-    console.log('📋 School Info:', {
-      schoolName: data.schoolName,
-      program: data.program,
-      studySemester: data.studySemester
-    })
-    console.log('📋 Payment Info:', {
-      amount: data.amount,
-      currency: data.currency,
-      schoolAccountName: data.schoolAccountName,
-      schoolAccountNumber: data.schoolAccountNumber,
-      schoolBankName: data.schoolBankName
-    })
-    console.log('📋 Files:', {
-      admissionLetter: data.admissionLetter,
-      feeInvoice: data.feeInvoice
-    })
-    console.log('============================')
-    
+  const submitForm = async (data: RequestFormData) => {
     setIsSubmitting(true)
     
     try {
-      // Validate all fields before submission
       const isValid = await trigger()
       
       if (!isValid) {
-        console.error('❌ Form validation failed:', errors)
         alert('Please check all fields and try again.')
         setIsSubmitting(false)
         return
       }
       
-      console.log('✅ Form validation passed, submitting to Supabase...')
-      
-      // Submit to Supabase
       const result = await requestService.submitRequest(data)
       
       if (result.success) {
-        console.log('✅ Request submitted successfully! ID:', result.id)
-        
-        // If onSuccess callback is provided (modal usage), call it
-        // Otherwise navigate to success page (standalone page usage)
         if (onSuccess) {
           onSuccess()
         }
         navigate('/submitted')
       } else {
-        console.error('❌ Submission failed:', result.error)
         alert(`Submission failed: ${result.error || 'Unknown error'}`)
       }
     } catch (error) {
-      console.error('❌ Submission error:', error)
       alert('There was an error submitting your request. Please try again.')
     } finally {
       setIsSubmitting(false)
@@ -157,43 +114,45 @@ export default function RequestForm({ onSuccess }: RequestFormProps) {
   }
 
   return (
-    <div className="py-12">
-      <div className="container-custom max-w-3xl">
-        {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-muted-foreground">
-              Step {currentStep} of {TOTAL_STEPS}
-            </span>
-            <span className="text-sm font-medium text-accent">
-              {Math.round((currentStep / TOTAL_STEPS) * 100)}% Complete
-            </span>
-          </div>
-          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-accent transition-all duration-500 ease-out"
-              style={{ width: `${(currentStep / TOTAL_STEPS) * 100}%` }}
-            />
-          </div>
+    <div className="py-8 px-6 md:px-10">
+      
+      {/* Wizard Header - Refined */}
+      <div className="mb-8">
+        {/* Step Text + Progress Percentage */}
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs font-medium text-muted-foreground tracking-wide">
+            Step {currentStep} of {TOTAL_STEPS}
+          </span>
+          <span className="text-xs font-semibold text-accent">
+            {Math.round((currentStep / TOTAL_STEPS) * 100)}%
+          </span>
+        </div>
+        
+        {/* Thin Progress Bar */}
+        <div className="w-full h-1 bg-muted rounded-full overflow-hidden mb-6">
+          <div 
+            className="h-full bg-accent transition-all duration-500 ease-out rounded-full"
+            style={{ width: `${(currentStep / TOTAL_STEPS) * 100}%` }}
+          />
         </div>
 
-        {/* Step Indicators */}
-        <div className="flex items-center justify-between mb-12">
+        {/* Step Circles - Smaller, Tighter */}
+        <div className="flex items-center justify-between px-1">
           {[1, 2, 3, 4, 5].map((step) => (
             <div key={step} className="flex flex-col items-center">
               <div className={`
-                w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
+                w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs
                 transition-all duration-300
                 ${currentStep >= step 
-                  ? 'bg-accent text-white shadow-medium' 
+                  ? 'bg-accent text-white shadow-sm' 
                   : 'bg-muted text-muted-foreground'
                 }
               `}>
                 {step}
               </div>
               <span className={`
-                text-xs mt-2 hidden md:block
-                ${currentStep >= step ? 'text-accent font-medium' : 'text-muted-foreground'}
+                text-[10px] mt-1.5 hidden md:block font-medium
+                ${currentStep >= step ? 'text-accent' : 'text-muted-foreground'}
               `}>
                 {step === 1 && 'Personal'}
                 {step === 2 && 'School'}
@@ -204,66 +163,65 @@ export default function RequestForm({ onSuccess }: RequestFormProps) {
             </div>
           ))}
         </div>
+      </div>
 
-        {/* Form Content */}
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="bg-white rounded-2xl border border-border/50 shadow-soft p-6 md:p-8 mb-8">
-            {renderStep()}
-          </div>
-
-          {/* Navigation Buttons */}
-          <div className="flex items-center justify-between gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handlePrevious}
-              disabled={currentStep === 1}
-              className="flex items-center gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
-            </Button>
-
-            {currentStep < TOTAL_STEPS ? (
-              <Button
-                type="button"
-                onClick={handleNext}
-                className="flex items-center gap-2"
-              >
-                Next
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex items-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    Submit Request
-                    <Send className="w-4 h-4" />
-                  </>
-                )}
-              </Button>
-            )}
-          </div>
-        </form>
-
-        {/* Help Text */}
-        <div className="mt-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            Need help? Contact us at{' '}
-            <a href="mailto:support@hopecatalyst.com" className="text-accent hover:underline">
-              support@hopecatalyst.com
-            </a>
-          </p>
+      {/* Form Content */}
+      <form onSubmit={handleSubmit(submitForm)}>
+        <div className="mb-8">
+          {renderStep()}
         </div>
+
+        {/* Navigation Buttons - Sticky Bottom Bar */}
+        <div className="flex items-center justify-between gap-4 pt-6 border-t border-border/50">
+          <button
+            type="button"
+            onClick={handlePrevious}
+            disabled={currentStep === 1}
+            className="flex items-center gap-2 h-11 px-5 font-medium text-sm text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-muted/50"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Back
+          </button>
+
+          {currentStep < TOTAL_STEPS ? (
+            <button
+              type="button"
+              onClick={handleNext}
+              className="flex items-center gap-2 h-11 px-6 bg-accent hover:bg-accent/90 text-white font-semibold text-sm rounded-lg transition-all shadow-sm hover:shadow-md"
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex items-center gap-2 h-11 px-6 bg-accent hover:bg-accent/90 text-white font-semibold text-sm rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  Submit Request
+                  <Send className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </form>
+
+      {/* Help Text */}
+      <div className="mt-6 text-center">
+        <p className="text-xs text-muted-foreground">
+          Need help? Contact us at{' '}
+          <a href="mailto:support@hopecatalyst.com" className="text-accent hover:underline font-medium">
+            support@hopecatalyst.com
+          </a>
+        </p>
       </div>
     </div>
   )

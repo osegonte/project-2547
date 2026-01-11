@@ -1,89 +1,95 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { requestService } from '../../features/request/request.service'
-import type { RequestSubmission } from '../../features/request/request.types'
-import { ArrowLeft, Download, CheckCircle, XCircle, DollarSign, FileText, Archive } from 'lucide-react'
-import Button from '../../components/ui/Button'
-import TextArea from '../../components/ui/TextArea'
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { supabase } from '../../lib/supabase'
+import type { Request } from '../../features/request/request.types'
+import { formatCurrency, formatDate } from '../../lib/utils'
+import { 
+  ArrowLeft, 
+  CheckCircle, 
+  XCircle, 
+  Download, 
+  Mail,
+  Phone,
+  Building2,
+  CreditCard,
+  FileText,
+  Calendar,
+  User
+} from 'lucide-react'
+import { motion } from 'framer-motion'
 
-export default function RequestDetail() {
-  const { id } = useParams<{ id: string }>()
+export default function RequestDetails() {
+  const { id } = useParams()
   const navigate = useNavigate()
-  const [request, setRequest] = useState<RequestSubmission | null>(null)
+  const [request, setRequest] = useState<Request | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [adminNotes, setAdminNotes] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
 
   useEffect(() => {
     if (id) {
-      loadRequest()
+      fetchRequest(id)
     }
   }, [id])
 
-  const loadRequest = async () => {
-    if (!id) return
-    setIsLoading(true)
-    const data = await requestService.getRequestById(id)
-    setRequest(data)
-    setAdminNotes(data?.admin_notes || '')
-    setIsLoading(false)
-  }
+  const fetchRequest = async (requestId: string) => {
+    try {
+      setIsLoading(true)
+      const { data, error } = await supabase
+        .from('requests')
+        .select('*')
+        .eq('id', requestId)
+        .single()
 
-  const handleStatusUpdate = async (newStatus: 'pending' | 'approved' | 'rejected' | 'paid') => {
-    if (!id || !request) return
-
-    const confirmMessage = `Are you sure you want to mark this request as "${newStatus}"?`
-    if (!confirm(confirmMessage)) return
-
-    setIsUpdating(true)
-    const result = await requestService.updateRequestStatus(id, newStatus, adminNotes)
-
-    if (result.success) {
-      // Force a full reload to ensure UI updates
-      await loadRequest()
-      alert(`Status updated to "${newStatus}" successfully!`)
-    } else {
-      alert(`Failed to update status: ${result.error}`)
+      if (error) throw error
+      setRequest(data)
+    } catch (error) {
+      console.error('Error fetching request:', error)
+    } finally {
+      setIsLoading(false)
     }
-    setIsUpdating(false)
   }
 
-  const handleArchive = async (reason: 'rejected' | 'paid') => {
+  const updateStatus = async (newStatus: 'approved' | 'rejected') => {
     if (!request) return
 
-    const reasonText = reason === 'rejected' ? 'rejected' : 'paid'
-    const confirmMessage = `📦 Archive & Delete this ${reasonText} request?\n\nThis will:\n1. Archive to Supabase (archived_requests table)\n2. Delete files from storage\n3. Delete from main database\n\nRequest from: ${request.full_name}\n\nContinue?`
-    
-    if (!confirm(confirmMessage)) return
-
     setIsUpdating(true)
-    const result = await requestService.archiveRequest(request, reason)
+    try {
+      const { error } = await supabase
+        .from('requests')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', request.id)
 
-    if (result.success) {
-      alert(`Request archived successfully!\n\nThe request has been moved to the archived_requests table and removed from active requests.`)
+      if (error) throw error
+
+      // Send status update email
+      await supabase.functions.invoke('send-email', {
+        body: {
+          type: 'status_update',
+          to: request.email,
+          studentName: request.full_name,
+          status: newStatus
+        }
+      })
+
+      alert(`Request ${newStatus} successfully!`)
       navigate('/admin/dashboard')
-    } else {
-      alert(`Failed to archive request: ${result.error}`)
-    }
-    setIsUpdating(false)
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'approved': return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'rejected': return 'bg-red-100 text-red-800 border-red-200'
-      case 'paid': return 'bg-green-100 text-green-800 border-green-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+    } catch (error) {
+      console.error('Error updating request:', error)
+      alert('Failed to update request')
+    } finally {
+      setIsUpdating(false)
     }
   }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-muted/30 via-background to-muted/20 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-accent/20 border-t-accent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading request...</p>
+          <div className="inline-block w-12 h-12 border-4 border-muted border-t-accent rounded-full animate-spin mb-4" />
+          <p className="text-sm text-muted-foreground">Loading request...</p>
         </div>
       </div>
     )
@@ -91,273 +97,226 @@ export default function RequestDetail() {
 
   if (!request) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-muted/30 via-background to-muted/20 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-xl text-muted-foreground mb-4">Request not found</p>
-          <Button onClick={() => navigate('/admin/dashboard')}>
+          <h2 className="text-xl font-bold text-foreground mb-2">Request not found</h2>
+          <Link to="/admin/dashboard" className="text-accent hover:underline text-sm">
             Back to Dashboard
-          </Button>
+          </Link>
         </div>
       </div>
     )
   }
 
+  const InfoCard = ({ icon: Icon, label, value }: { icon: any, label: string, value: string }) => (
+    <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
+      <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+        <Icon className="w-4 h-4 text-accent" strokeWidth={2} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+          {label}
+        </p>
+        <p className="text-sm font-semibold text-foreground break-words">
+          {value}
+        </p>
+      </div>
+    </div>
+  )
+
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      pending: 'bg-amber-50 text-amber-700 border-amber-200',
+      approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      rejected: 'bg-rose-50 text-rose-700 border-rose-200'
+    }
+    
+    return (
+      <span className={`inline-flex items-center px-3 py-1 rounded-lg text-sm font-bold border ${variants[status as keyof typeof variants]}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-background py-8">
-      <div className="container-custom max-w-5xl">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate('/admin/dashboard')}
-            className="flex items-center gap-2 text-muted-foreground hover:text-accent transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </button>
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-3xl font-serif font-bold text-primary mb-2">
-                Request Details
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                ID: {request.id}
-              </p>
+    <div className="min-h-screen bg-gradient-to-br from-muted/30 via-background to-muted/20">
+      {/* Header */}
+      <div className="border-b border-border/40 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link
+                to="/admin/dashboard"
+                className="w-9 h-9 rounded-lg bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+              <div>
+                <h1 className="text-xl font-bold text-foreground mb-1">Request Details</h1>
+                <p className="text-sm text-muted-foreground">
+                  Submitted {formatDate(request.created_at)}
+                </p>
+              </div>
             </div>
-            <span className={`px-4 py-2 rounded-lg text-sm font-medium border ${getStatusColor(request.status)}`}>
-              {request.status.toUpperCase()}
-            </span>
+            <div>
+              {getStatusBadge(request.status)}
+            </div>
           </div>
         </div>
+      </div>
 
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
+          
+          {/* Left Column - Main Info */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Personal Information */}
-            <div className="bg-white rounded-xl border border-border p-6">
-              <h2 className="text-xl font-semibold text-primary mb-4">Personal Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Full Name</p>
-                  <p className="font-medium text-foreground">{request.full_name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Email</p>
-                  <p className="font-medium text-foreground">{request.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Phone</p>
-                  <p className="font-medium text-foreground">{request.phone}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Submission Date</p>
-                  <p className="font-medium text-foreground">
-                    {new Date(request.created_at).toLocaleDateString()}
-                  </p>
-                </div>
+            
+            {/* Student Information */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden"
+            >
+              <div className="border-b border-border/40 px-6 py-4 bg-muted/20">
+                <h2 className="text-lg font-bold text-foreground">Student Information</h2>
               </div>
-            </div>
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InfoCard icon={User} label="Full Name" value={request.full_name} />
+                <InfoCard icon={Mail} label="Email" value={request.email} />
+                <InfoCard icon={Phone} label="Phone" value={request.phone} />
+                <InfoCard icon={Calendar} label="Submitted" value={formatDate(request.created_at)} />
+              </div>
+            </motion.div>
 
             {/* School Information */}
-            <div className="bg-white rounded-xl border border-border p-6">
-              <h2 className="text-xl font-semibold text-primary mb-4">School Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">School Name</p>
-                  <p className="font-medium text-foreground">{request.school_name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Program</p>
-                  <p className="font-medium text-foreground">{request.program}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Study Semester</p>
-                  <p className="font-medium text-foreground">{request.study_semester}</p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden"
+            >
+              <div className="border-b border-border/40 px-6 py-4 bg-muted/20">
+                <h2 className="text-lg font-bold text-foreground">School Details</h2>
+              </div>
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InfoCard icon={Building2} label="School Name" value={request.school_name} />
+                <InfoCard icon={FileText} label="Program" value={request.program} />
+                <div className="md:col-span-2">
+                  <InfoCard icon={Calendar} label="Semester/Year" value={request.study_semester} />
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            {/* Payment Details */}
-            <div className="bg-white rounded-xl border border-border p-6">
-              <h2 className="text-xl font-semibold text-primary mb-4">Payment Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Amount</p>
-                  <p className="text-2xl font-bold text-accent">
-                    {request.currency} {Number(request.amount).toLocaleString()}
+            {/* Payment Information */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden"
+            >
+              <div className="border-b border-border/40 px-6 py-4 bg-muted/20">
+                <h2 className="text-lg font-bold text-foreground">Payment Details</h2>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="p-4 bg-accent/5 rounded-lg border border-accent/20">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    Amount Requested
+                  </p>
+                  <p className="text-3xl font-bold text-accent">
+                    {formatCurrency(request.amount, request.currency)}
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Bank Name</p>
-                  <p className="font-medium text-foreground">{request.school_bank_name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Account Name</p>
-                  <p className="font-medium text-foreground">{request.school_account_name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Account Number</p>
-                  <p className="font-medium text-foreground font-mono">{request.school_account_number}</p>
-                </div>
-                {request.school_sort_code && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Sort Code / Additional Info</p>
-                    <p className="font-medium text-foreground">{request.school_sort_code}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <InfoCard icon={Building2} label="Account Name" value={request.school_account_name} />
+                  <InfoCard icon={CreditCard} label="Account Number" value={request.school_account_number} />
+                  <div className="md:col-span-2">
+                    <InfoCard icon={Building2} label="Bank Name" value={request.school_bank_name} />
                   </div>
-                )}
+                </div>
               </div>
-            </div>
+            </motion.div>
+          </div>
 
+          {/* Right Column - Documents & Actions */}
+          <div className="space-y-6">
+            
             {/* Documents */}
-            <div className="bg-white rounded-xl border border-border p-6">
-              <h2 className="text-xl font-semibold text-primary mb-4">Uploaded Documents</h2>
-              <div className="space-y-3">
-                {request.admission_letter_url ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden"
+            >
+              <div className="border-b border-border/40 px-6 py-4 bg-muted/20">
+                <h2 className="text-lg font-bold text-foreground">Documents</h2>
+              </div>
+              <div className="p-6 space-y-3">
+                {request.admission_letter_url && (
                   <a
                     href={request.admission_letter_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between p-4 bg-accent/5 border border-accent/20 rounded-lg hover:bg-accent/10 transition-colors"
+                    className="flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 rounded-lg transition-colors group"
                   >
                     <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-accent" />
-                      <div>
-                        <p className="font-medium text-foreground">Admission Letter</p>
-                        <p className="text-sm text-muted-foreground">Click to view</p>
+                      <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
+                        <FileText className="w-4 h-4 text-accent" />
                       </div>
+                      <span className="text-sm font-semibold text-foreground">Admission Letter</span>
                     </div>
-                    <Download className="w-5 h-5 text-accent" />
+                    <Download className="w-4 h-4 text-muted-foreground group-hover:text-accent transition-colors" />
                   </a>
-                ) : (
-                  <div className="p-4 bg-muted/30 border border-border rounded-lg">
-                    <p className="text-sm text-muted-foreground">No admission letter uploaded</p>
-                  </div>
                 )}
-
-                {request.fee_invoice_url ? (
+                {request.school_fees_breakdown_url && (
                   <a
-                    href={request.fee_invoice_url}
+                    href={request.school_fees_breakdown_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between p-4 bg-accent/5 border border-accent/20 rounded-lg hover:bg-accent/10 transition-colors"
+                    className="flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 rounded-lg transition-colors group"
                   >
                     <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-accent" />
-                      <div>
-                        <p className="font-medium text-foreground">Fee Invoice</p>
-                        <p className="text-sm text-muted-foreground">Click to view</p>
+                      <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
+                        <FileText className="w-4 h-4 text-accent" />
                       </div>
+                      <span className="text-sm font-semibold text-foreground">Fees Breakdown</span>
                     </div>
-                    <Download className="w-5 h-5 text-accent" />
+                    <Download className="w-4 h-4 text-muted-foreground group-hover:text-accent transition-colors" />
                   </a>
-                ) : (
-                  <div className="p-4 bg-muted/30 border border-border rounded-lg">
-                    <p className="text-sm text-muted-foreground">No fee invoice uploaded</p>
-                  </div>
                 )}
               </div>
-            </div>
+            </motion.div>
 
-            {/* Additional Notes from Student */}
-            {request.additional_notes && (
-              <div className="bg-white rounded-xl border border-border p-6">
-                <h2 className="text-xl font-semibold text-primary mb-4">Student Notes</h2>
-                <p className="text-foreground leading-relaxed">{request.additional_notes}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar - Actions */}
-          <div className="space-y-6">
-            {/* Status Actions */}
-            <div className="bg-white rounded-xl border border-border p-6 sticky top-8">
-              <h3 className="text-lg font-semibold text-primary mb-4">Update Status</h3>
-              
-              <div className="space-y-3">
-                <Button
-                  onClick={() => handleStatusUpdate('approved')}
-                  disabled={isUpdating || request.status === 'approved'}
-                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700"
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  Approve
-                </Button>
-
-                <Button
-                  onClick={() => handleStatusUpdate('rejected')}
-                  disabled={isUpdating || request.status === 'rejected'}
-                  className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700"
-                >
-                  <XCircle className="w-4 h-4" />
-                  Reject
-                </Button>
-
-                <Button
-                  onClick={() => handleStatusUpdate('paid')}
-                  disabled={isUpdating || request.status === 'paid'}
-                  className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700"
-                >
-                  <DollarSign className="w-4 h-4" />
-                  Mark as Paid
-                </Button>
-
-                <Button
-                  onClick={() => handleStatusUpdate('pending')}
-                  disabled={isUpdating || request.status === 'pending'}
-                  variant="outline"
-                  className="w-full"
-                >
-                  Reset to Pending
-                </Button>
-              </div>
-
-              <div className="mt-6 pt-6 border-t border-border">
-                <TextArea
-                  label="Admin Notes"
-                  placeholder="Add notes about this request..."
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  rows={4}
-                />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Notes are saved when you update the status
-                </p>
-              </div>
-            </div>
-
-            {/* Archive Actions */}
-            {(request.status === 'rejected' || request.status === 'paid') && (
-              <div className="bg-white rounded-xl border border-orange-200 p-6">
-                <h3 className="text-lg font-semibold text-orange-600 mb-4">Archive & Clean Up</h3>
-                
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {request.status === 'rejected' 
-                      ? 'Archive this rejected request to keep your database clean.'
-                      : 'Archive this paid request and delete associated files.'
-                    }
-                  </p>
-                  
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-3">
-                    <p className="text-xs text-orange-800">
-                      <strong>This will:</strong>
-                    </p>
-                    <ul className="text-xs text-orange-700 mt-1 space-y-1 ml-4">
-                      <li>✓ Save to archived_requests table</li>
-                      <li>✓ Delete uploaded files from storage</li>
-                      <li>✓ Remove from active requests</li>
-                    </ul>
-                  </div>
-
-                  <Button
-                    onClick={() => handleArchive(request.status as 'rejected' | 'paid')}
-                    disabled={isUpdating}
-                    className="w-full flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700"
-                  >
-                    <Archive className="w-4 h-4" />
-                    Archive & Delete
-                  </Button>
+            {/* Decision Actions */}
+            {request.status === 'pending' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden"
+              >
+                <div className="border-b border-border/40 px-6 py-4 bg-muted/20">
+                  <h2 className="text-lg font-bold text-foreground">Make Decision</h2>
                 </div>
-              </div>
+                <div className="p-6 space-y-3">
+                  <button
+                    onClick={() => updateStatus('approved')}
+                    disabled={isUpdating}
+                    className="w-full h-11 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    {isUpdating ? 'Updating...' : 'Approve Request'}
+                  </button>
+                  <button
+                    onClick={() => updateStatus('rejected')}
+                    disabled={isUpdating}
+                    className="w-full h-11 flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    {isUpdating ? 'Updating...' : 'Reject Request'}
+                  </button>
+                </div>
+              </motion.div>
             )}
           </div>
         </div>

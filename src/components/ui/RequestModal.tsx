@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import RequestForm from '../../features/request/RequestForm'
+import { X } from 'lucide-react'
 
 interface RequestModalProps {
   isOpen: boolean
@@ -13,23 +14,19 @@ export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
 
   // Handle double-click on backdrop
   const handleBackdropClick = (e: React.MouseEvent) => {
-    // Only trigger if clicking the backdrop itself, not the modal content
     if (e.target === e.currentTarget) {
       setClickCount(prev => prev + 1)
 
-      // Clear existing timeout
       if (clickTimeout) {
         clearTimeout(clickTimeout)
       }
 
-      // Set new timeout to reset click count
       const timeout = setTimeout(() => {
         setClickCount(0)
-      }, 500) // 500ms window for double-click
+      }, 500)
 
       setClickTimeoutState(timeout)
 
-      // Check if this is the second click
       if (clickCount === 1) {
         onClose()
         setClickCount(0)
@@ -76,38 +73,56 @@ export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop - Darker + Soft Blur */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.2 }}
             onClick={handleBackdropClick}
-            className="fixed inset-0 bg-black/50 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-pointer"
+            className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-pointer"
           >
-            {/* Modal Container */}
+            {/* Modal Container - Apple HIG sizing */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.96, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
+              exit={{ opacity: 0, scale: 0.96, y: 20 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden cursor-default"
-              style={{ maxHeight: '90vh' }}
+              className="relative w-full max-w-[720px] bg-white rounded-2xl shadow-2xl overflow-hidden cursor-default"
+              style={{ maxHeight: '85vh' }}
             >
-              {/* Hidden scrollbar but functional scroll */}
+              {/* Close Button */}
+              <button
+                onClick={onClose}
+                className="absolute top-4 right-4 z-50 w-8 h-8 flex items-center justify-center rounded-full bg-muted/80 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                aria-label="Close modal"
+              >
+                <X className="w-4 h-4" strokeWidth={2} />
+              </button>
+
+              {/* Scrollable Content */}
               <div 
                 className="overflow-y-auto"
                 style={{ 
-                  maxHeight: '90vh',
-                  scrollbarWidth: 'none', /* Firefox */
-                  msOverflowStyle: 'none', /* IE and Edge */
+                  maxHeight: '85vh',
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: 'hsl(214, 32%, 91%) transparent'
                 }}
               >
-                {/* Hide scrollbar for Chrome, Safari and Opera */}
                 <style>{`
                   .overflow-y-auto::-webkit-scrollbar {
-                    display: none;
+                    width: 6px;
+                  }
+                  .overflow-y-auto::-webkit-scrollbar-track {
+                    background: transparent;
+                  }
+                  .overflow-y-auto::-webkit-scrollbar-thumb {
+                    background: hsl(214, 32%, 91%);
+                    border-radius: 3px;
+                  }
+                  .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+                    background: hsl(214, 32%, 85%);
                   }
                 `}</style>
                 
@@ -116,9 +131,9 @@ export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
               </div>
 
               {/* Subtle hint text at bottom */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent pointer-events-none">
-                <p className="text-xs text-center text-muted-foreground py-3">
-                  Double-click outside to close • Press ESC to exit
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent pointer-events-none py-3">
+                <p className="text-xs text-center text-muted-foreground">
+                  Press ESC or double-click outside to close
                 </p>
               </div>
             </motion.div>
