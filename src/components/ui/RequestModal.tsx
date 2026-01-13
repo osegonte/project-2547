@@ -1,7 +1,6 @@
-import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useState } from 'react'
-import RequestForm from '../../features/request/RequestForm'
+import { useState } from 'react'
 import { X } from 'lucide-react'
+import Stepper, { Step } from './Stepper'
 
 interface RequestModalProps {
   isOpen: boolean
@@ -9,137 +8,135 @@ interface RequestModalProps {
 }
 
 export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
-  const [clickCount, setClickCount] = useState(0)
-  const [clickTimeout, setClickTimeoutState] = useState<NodeJS.Timeout | null>(null)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
 
-  // Handle double-click on backdrop
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      setClickCount(prev => prev + 1)
-
-      if (clickTimeout) {
-        clearTimeout(clickTimeout)
-      }
-
-      const timeout = setTimeout(() => {
-        setClickCount(0)
-      }, 500)
-
-      setClickTimeoutState(timeout)
-
-      if (clickCount === 1) {
-        onClose()
-        setClickCount(0)
-      }
-    }
-  }
-
-  // Handle ESC key press
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose()
-      }
-    }
-
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [isOpen, onClose])
-
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen])
-
-  // Reset click count when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setClickCount(0)
-      if (clickTimeout) {
-        clearTimeout(clickTimeout)
-      }
-    }
-  }, [isOpen, clickTimeout])
+  if (!isOpen) return null
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop - Darker + Soft Blur */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={handleBackdropClick}
-            className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-pointer"
-          >
-            {/* Modal Container - Apple HIG sizing */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 20 }}
-              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-[720px] bg-white rounded-2xl shadow-2xl overflow-hidden cursor-default"
-              style={{ maxHeight: '85vh' }}
-            >
-              {/* Close Button */}
-              <button
-                onClick={onClose}
-                className="absolute top-4 right-4 z-50 w-8 h-8 flex items-center justify-center rounded-full bg-muted/80 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                aria-label="Close modal"
-              >
-                <X className="w-4 h-4" strokeWidth={2} />
-              </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="relative w-full max-w-2xl">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
+        >
+          <X className="w-6 h-6" />
+        </button>
 
-              {/* Scrollable Content */}
-              <div 
-                className="overflow-y-auto"
-                style={{ 
-                  maxHeight: '85vh',
-                  scrollbarWidth: 'thin',
-                  scrollbarColor: 'hsl(214, 32%, 91%) transparent'
-                }}
-              >
-                <style>{`
-                  .overflow-y-auto::-webkit-scrollbar {
-                    width: 6px;
-                  }
-                  .overflow-y-auto::-webkit-scrollbar-track {
-                    background: transparent;
-                  }
-                  .overflow-y-auto::-webkit-scrollbar-thumb {
-                    background: hsl(214, 32%, 91%);
-                    border-radius: 3px;
-                  }
-                  .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-                    background: hsl(214, 32%, 85%);
-                  }
-                `}</style>
-                
-                {/* Form Content */}
-                <RequestForm onSuccess={onClose} />
-              </div>
-
-              {/* Subtle hint text at bottom */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent pointer-events-none py-3">
-                <p className="text-xs text-center text-muted-foreground">
-                  Press ESC or double-click outside to close
+        {/* Stepper Component */}
+        <Stepper
+          initialStep={1}
+          onFinalStepCompleted={() => {
+            console.log('Form completed!')
+            // Handle form submission here
+          }}
+          nextButtonText="Continue"
+          backButtonText="Back"
+        >
+          {/* Step 1: Personal Information */}
+          <Step>
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-serif font-semibold text-primary mb-2">
+                  Personal Information
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Let's start with your basic details
                 </p>
               </div>
-            </motion.div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+
+              <div className="space-y-4">
+                {/* First Name */}
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-foreground mb-2">
+                    First Name
+                  </label>
+                  <input
+                    id="firstName"
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Enter your first name"
+                    className="w-full px-4 py-3 rounded-lg border border-border bg-white text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                  />
+                </div>
+
+                {/* Last Name */}
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-foreground mb-2">
+                    Last Name
+                  </label>
+                  <input
+                    id="lastName"
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Enter your last name"
+                    className="w-full px-4 py-3 rounded-lg border border-border bg-white text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+          </Step>
+
+          {/* Step 2: Placeholder for School Information */}
+          <Step>
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-serif font-semibold text-primary mb-2">
+                  School Information
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  This step will be added next
+                </p>
+              </div>
+            </div>
+          </Step>
+
+          {/* Step 3: Placeholder for Payment Details */}
+          <Step>
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-serif font-semibold text-primary mb-2">
+                  Payment Details
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  This step will be added next
+                </p>
+              </div>
+            </div>
+          </Step>
+
+          {/* Step 4: Placeholder for Documents */}
+          <Step>
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-serif font-semibold text-primary mb-2">
+                  Upload Documents
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  This step will be added next
+                </p>
+              </div>
+            </div>
+          </Step>
+
+          {/* Step 5: Placeholder for Review */}
+          <Step>
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-serif font-semibold text-primary mb-2">
+                  Review & Submit
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  This step will be added next
+                </p>
+              </div>
+            </div>
+          </Step>
+        </Stepper>
+      </div>
+    </div>
   )
 }
