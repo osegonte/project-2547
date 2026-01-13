@@ -39,10 +39,10 @@ interface HowItWorksProps {
 
 export default function HowItWorks({ onOpenModal }: HowItWorksProps) {
   return (
-    <section id="how-it-works" className="py-24 lg:py-32 bg-white">
-      <div className="max-w-[1200px] mx-auto px-8 lg:px-12">
+    <section id="how-it-works" className="relative py-24 lg:py-32 bg-white">
+      <div className="max-w-[1200px] mx-auto px-8 lg:px-12 relative z-10">
         
-        {/* Section Header - Simplified */}
+        {/* Section Header - Bigger with Underline */}
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -51,8 +51,10 @@ export default function HowItWorks({ onOpenModal }: HowItWorksProps) {
           variants={fadeInUp}
           className="text-center mb-16"
         >
-          <h2 className="text-sm font-bold text-accent tracking-widest uppercase">
+          <h2 className="text-2xl lg:text-3xl font-bold text-accent tracking-wider uppercase inline-block relative pb-3">
             How It Works
+            {/* Underline Accent */}
+            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-1 bg-accent rounded-full"></span>
           </h2>
         </motion.div>
 

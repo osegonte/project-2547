@@ -29,7 +29,7 @@ interface HeroProps {
 export default function Hero({ onOpenModal }: HeroProps) {
   return (
     <section className="min-h-screen flex items-center relative overflow-hidden">
-      {/* Background Image - Clear, No Overlay */}
+      {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <img 
           src="/hero-bg.jpg"
@@ -41,14 +41,14 @@ export default function Hero({ onOpenModal }: HeroProps) {
       {/* Content */}
       <div className="w-full relative z-10">
         <div className="max-w-[1200px] mx-auto px-8 lg:px-12">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center min-h-screen py-32 lg:py-0">
+          <div className="grid lg:grid-cols-[1.2fr,1fr] gap-16 items-center min-h-screen py-32 lg:py-20">
             
             {/* LEFT SIDE - Text Content */}
             <motion.div 
               variants={staggerContainer}
               initial="hidden"
               animate="visible"
-              className="space-y-8 relative z-20"
+              className="space-y-7 relative z-20"
               style={{ textShadow: '0 2px 20px rgba(0, 0, 0, 0.4)' }}
             >
               {/* Eyebrow Badge */}
@@ -113,20 +113,19 @@ export default function Hero({ onOpenModal }: HeroProps) {
               </motion.div>
             </motion.div>
 
-            {/* RIGHT SIDE - Uniform Glassmorphism Card */}
+            {/* RIGHT SIDE - Glassmorphism Card */}
             <motion.div 
               variants={fadeInRight}
               initial="hidden"
               animate="visible"
               transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
-              className="relative hidden lg:block h-[600px]"
+              className="hidden lg:flex justify-center items-center"
             >
-              {/* Glassmorphism Card - More Uniform Blur */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.8, ease: 'easeOut', delay: 0.4 }}
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-[320px] bg-white/15 backdrop-blur-2xl rounded-2xl border border-white/30 shadow-2xl p-8"
+                className="w-full max-w-[360px] bg-white/15 backdrop-blur-2xl rounded-2xl border border-white/30 shadow-2xl p-8"
               >
                 <div className="space-y-6">
                   {/* Microproof Item 1 */}

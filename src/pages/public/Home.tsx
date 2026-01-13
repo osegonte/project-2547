@@ -1,5 +1,4 @@
 import Hero from '../../components/sections/Hero'
-import TrustStrip from '../../components/sections/TrustStrip'
 import HowItWorks from '../../components/sections/HowItWorks'
 import Transparency from '../../components/sections/Transparency'
 
@@ -11,7 +10,6 @@ export default function Home({ onOpenModal }: HomeProps) {
   return (
     <>
       <Hero onOpenModal={onOpenModal} />
-      <TrustStrip />
       <HowItWorks onOpenModal={onOpenModal} />
       <Transparency />
     </>

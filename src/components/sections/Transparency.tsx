@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { Check, X } from 'lucide-react'
+import { useState } from 'react'
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
@@ -25,11 +26,23 @@ const weDont = [
 ]
 
 export default function Transparency() {
+  const [hoveredCard, setHoveredCard] = useState<'do' | 'dont' | null>(null)
+
+  const getBlurAmount = (card: 'do' | 'dont') => {
+    if (hoveredCard === null) return 0
+    return hoveredCard === card ? 0 : 8
+  }
+
+  const getOpacity = (card: 'do' | 'dont') => {
+    if (hoveredCard === null) return 1
+    return hoveredCard === card ? 1 : 0.4
+  }
+
   return (
-    <section id="transparency" className="py-24 lg:py-32 bg-gradient-to-b from-white to-muted/20">
-      <div className="max-w-[1200px] mx-auto px-8 lg:px-12">
+    <section id="transparency" className="relative py-24 lg:py-32 bg-gradient-to-b from-transparent to-muted/20">
+      <div className="max-w-[1200px] mx-auto px-8 lg:px-12 relative z-10">
         
-        {/* Section Header - Simplified */}
+        {/* Section Header */}
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -48,15 +61,22 @@ export default function Transparency() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
           
-          {/* WE DO Column - More Prominent */}
+          {/* WE DO Column - Prominent */}
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
             variants={fadeInUp}
+            onMouseEnter={() => setHoveredCard('do')}
+            onMouseLeave={() => setHoveredCard(null)}
+            style={{
+              filter: `blur(${getBlurAmount('do')}px)`,
+              opacity: getOpacity('do'),
+              transition: 'filter 0.5s ease, opacity 0.5s ease'
+            }}
           >
-            <div className="bg-white border-2 border-accent/30 rounded-2xl p-8 h-full shadow-medium hover:shadow-lg transition-all">
+            <div className="bg-white/80 backdrop-blur-sm border-2 border-accent/30 rounded-2xl p-8 h-full shadow-medium hover:shadow-lg transition-all cursor-pointer">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-11 h-11 bg-accent/10 rounded-xl flex items-center justify-center">
                   <Check className="w-6 h-6 text-accent" strokeWidth={2.5} />
@@ -72,7 +92,7 @@ export default function Transparency() {
                     <div className="w-5 h-5 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <Check className="w-3 h-3 text-accent" strokeWidth={3} />
                     </div>
-                    <span className="text-sm text-foreground leading-relaxed">{item}</span>
+                    <span className="text-sm text-foreground/80 leading-relaxed">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -86,8 +106,15 @@ export default function Transparency() {
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
             variants={fadeInUp}
+            onMouseEnter={() => setHoveredCard('dont')}
+            onMouseLeave={() => setHoveredCard(null)}
+            style={{
+              filter: `blur(${getBlurAmount('dont')}px)`,
+              opacity: getOpacity('dont'),
+              transition: 'filter 0.5s ease, opacity 0.5s ease'
+            }}
           >
-            <div className="bg-white/60 border border-border/50 rounded-2xl p-8 h-full shadow-soft hover:shadow-medium transition-all">
+            <div className="bg-white/50 backdrop-blur-sm border border-border/50 rounded-2xl p-8 h-full shadow-soft hover:shadow-medium transition-all cursor-pointer">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-11 h-11 bg-muted/80 rounded-xl flex items-center justify-center">
                   <X className="w-6 h-6 text-muted-foreground" strokeWidth={2.5} />
@@ -103,7 +130,7 @@ export default function Transparency() {
                     <div className="w-5 h-5 bg-muted/60 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <X className="w-3 h-3 text-muted-foreground" strokeWidth={3} />
                     </div>
-                    <span className="text-sm text-muted-foreground leading-relaxed">{item}</span>
+                    <span className="text-sm text-muted-foreground/70 leading-relaxed">{item}</span>
                   </li>
                 ))}
               </ul>
