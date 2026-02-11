@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import type { Request } from '../../features/request/request.types'
+import type { RequestSubmission } from '../../features/request/request.types'
 import { formatCurrency, formatDate } from '../../lib/utils'
 import { 
   ArrowLeft, 
@@ -21,7 +21,7 @@ import { motion } from 'framer-motion'
 export default function RequestDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [request, setRequest] = useState<Request | null>(null)
+  const [request, setRequest] = useState<RequestSubmission | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
 
@@ -108,7 +108,7 @@ export default function RequestDetails() {
     )
   }
 
-  const InfoCard = ({ icon: Icon, label, value }: { icon: any, label: string, value: string }) => (
+  const InfoCard = ({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string; strokeWidth?: number }>, label: string, value: string }) => (
     <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
       <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
         <Icon className="w-4 h-4 text-accent" strokeWidth={2} />
@@ -224,7 +224,7 @@ export default function RequestDetails() {
                     Amount Requested
                   </p>
                   <p className="text-3xl font-bold text-accent">
-                    {formatCurrency(request.amount, request.currency)}
+                    {formatCurrency(Number(request.amount), request.currency)}
                   </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -268,9 +268,9 @@ export default function RequestDetails() {
                     <Download className="w-4 h-4 text-muted-foreground group-hover:text-accent transition-colors" />
                   </a>
                 )}
-                {request.school_fees_breakdown_url && (
+                {request.fee_invoice_url && (
                   <a
-                    href={request.school_fees_breakdown_url}
+                    href={request.fee_invoice_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 rounded-lg transition-colors group"
@@ -279,10 +279,13 @@ export default function RequestDetails() {
                       <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
                         <FileText className="w-4 h-4 text-accent" />
                       </div>
-                      <span className="text-sm font-semibold text-foreground">Fees Breakdown</span>
+                      <span className="text-sm font-semibold text-foreground">Fee Invoice</span>
                     </div>
                     <Download className="w-4 h-4 text-muted-foreground group-hover:text-accent transition-colors" />
                   </a>
+                )}
+                {!request.admission_letter_url && !request.fee_invoice_url && (
+                  <p className="text-sm text-muted-foreground text-center py-4">No documents uploaded</p>
                 )}
               </div>
             </motion.div>

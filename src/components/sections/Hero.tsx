@@ -29,8 +29,8 @@ interface HeroProps {
 export default function Hero({ onOpenModal }: HeroProps) {
   return (
     <section className="min-h-screen flex items-center relative overflow-hidden">
-      {/* Background Image */}
-      <div className="absolute inset-0 z-0">
+      {/* Background Image with fallback bg color */}
+      <div className="absolute inset-0 z-0 bg-primary">
         <img 
           src="/hero-bg.jpg"
           alt="Students studying"

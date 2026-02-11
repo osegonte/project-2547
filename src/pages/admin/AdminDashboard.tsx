@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import type { Request } from '../../features/request/request.types'
+import type { RequestSubmission } from '../../features/request/request.types'
 import RequestsTable from '../../components/admin/RequestsTable'
 import { TrendingUp, Clock, CheckCircle, XCircle, FileText } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -13,7 +13,7 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
-  const [requests, setRequests] = useState<Request[]>([])
+  const [requests, setRequests] = useState<RequestSubmission[]>([])
   const [stats, setStats] = useState<DashboardStats>({
     total: 0,
     pending: 0,
@@ -40,13 +40,13 @@ export default function AdminDashboard() {
         setRequests(data)
         
         // Calculate stats
-        const stats: DashboardStats = {
+        const newStats: DashboardStats = {
           total: data.length,
           pending: data.filter(r => r.status === 'pending').length,
           approved: data.filter(r => r.status === 'approved').length,
           rejected: data.filter(r => r.status === 'rejected').length
         }
-        setStats(stats)
+        setStats(newStats)
       }
     } catch (error) {
       console.error('Error fetching requests:', error)

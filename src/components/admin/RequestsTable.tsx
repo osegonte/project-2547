@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom'
-import type { Request } from '../../features/request/request.types'
+import type { RequestSubmission } from '../../features/request/request.types'
 import { formatCurrency, formatDate } from '../../lib/utils'
 import { Eye, ArrowUpRight } from 'lucide-react'
 
 interface RequestsTableProps {
-  requests: Request[]
+  requests: RequestSubmission[]
   isLoading: boolean
   onUpdate: () => void
 }
@@ -98,7 +98,7 @@ export default function RequestsTable({ requests, isLoading }: RequestsTableProp
               </td>
               <td className="px-6 py-4">
                 <p className="font-bold text-sm text-foreground">
-                  {formatCurrency(request.amount, request.currency)}
+                  {formatCurrency(Number(request.amount), request.currency)}
                 </p>
               </td>
               <td className="px-6 py-4">
