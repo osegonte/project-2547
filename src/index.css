@@ -111,6 +111,15 @@
     @apply max-w-3xl;
   }
 
+  /* Hidden scrollbar utility */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
   /* Mobile section spacing optimization */
   @media (max-width: 768px) {
     section {
