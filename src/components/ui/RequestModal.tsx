@@ -2,9 +2,11 @@ import { useState, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Upload, FileText, Trash2 } from 'lucide-react'
+import { X, Upload, FileText, Trash2, AlertCircle } from 'lucide-react'
 import Stepper, { Step } from './Stepper'
+import { requestService } from '../../features/request/request.service'
 
 /* ─── Schema ─── */
 
@@ -20,6 +22,7 @@ const requestSchema = z.object({
   schoolAccountName: z.string().min(2, 'Account name is required'),
   schoolAccountNumber: z.string().min(5, 'Account number is required'),
   schoolBankName: z.string().min(2, 'Bank name is required'),
+  schoolSortCode: z.string().optional(),
   additionalNotes: z.string().optional(),
 })
 
@@ -33,7 +36,7 @@ const STEP_FIELDS: Record<number, (keyof FormData)[]> = {
   5: [],
 }
 
-/* ─── Input Component ─── */
+/* ─── Reusable Form Components ─── */
 
 function FormInput({
   label,
@@ -56,7 +59,12 @@ function FormInput({
           error ? 'border-red-400' : 'border-border/60'
         }`}
       />
-      {error && <p className="text-sm text-red-500 mt-1.5">{error}</p>}
+      {error && (
+        <p className="text-sm text-red-500 mt-1.5 flex items-center gap-1">
+          <AlertCircle className="w-3.5 h-3.5" />
+          {error}
+        </p>
+      )}
     </div>
   )
 }
@@ -85,8 +93,71 @@ function FormSelect({
       >
         {children}
       </select>
-      {error && <p className="text-sm text-red-500 mt-1.5">{error}</p>}
+      {error && (
+        <p className="text-sm text-red-500 mt-1.5 flex items-center gap-1">
+          <AlertCircle className="w-3.5 h-3.5" />
+          {error}
+        </p>
+      )}
     </div>
+  )
+}
+
+/* ─── File Upload Card ─── */
+
+function FileUploadCard({
+  label,
+  description,
+  file,
+  onFileChange,
+  onRemove,
+}: {
+  label: string
+  description: string
+  file: File | null
+  onFileChange: (file: File) => void
+  onRemove: () => void
+}) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      onFileChange(e.target.files[0])
+    }
+    e.target.value = ''
+  }
+
+  if (file) {
+    return (
+      <div className="flex items-center justify-between px-4 py-3.5 rounded-xl bg-accent/5 border border-accent/20">
+        <div className="flex items-center gap-3 min-w-0">
+          <FileText className="w-5 h-5 text-accent flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
+            <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(0)} KB</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors flex-shrink-0"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <label className="flex flex-col items-center justify-center w-full py-8 border-2 border-dashed border-border/60 rounded-xl cursor-pointer hover:border-accent/50 hover:bg-accent/5 transition-all">
+      <Upload className="w-6 h-6 text-muted-foreground/60 mb-2" />
+      <span className="text-sm font-medium text-foreground">{label}</span>
+      <span className="text-xs text-muted-foreground/60 mt-1">{description}</span>
+      <input
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png"
+        className="hidden"
+        onChange={handleChange}
+      />
+    </label>
   )
 }
 
@@ -98,8 +169,11 @@ interface RequestModalProps {
 }
 
 export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+  const navigate = useNavigate()
+  const [admissionLetter, setAdmissionLetter] = useState<File | null>(null)
+  const [feeInvoice, setFeeInvoice] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const {
     register,
@@ -116,7 +190,9 @@ export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
 
   const handleClose = () => {
     reset()
-    setUploadedFiles([])
+    setAdmissionLetter(null)
+    setFeeInvoice(null)
+    setSubmitError(null)
     onClose()
   }
 
@@ -131,29 +207,50 @@ export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
     [trigger]
   )
 
-  /* File handling */
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files)
-      setUploadedFiles((prev) => [...prev, ...newFiles])
-    }
-    e.target.value = ''
-  }
-
-  const removeFile = (index: number) => {
-    setUploadedFiles((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  /* Submit */
+  /* Submit to Supabase via requestService */
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true)
+    setSubmitError(null)
+
     try {
-      // Placeholder for actual submission logic
-      console.log('Submitting:', { ...data, files: uploadedFiles })
-      await new Promise((r) => setTimeout(r, 1500))
-      handleClose()
-    } catch {
-      alert('Submission failed. Please try again.')
+      // Check for duplicate submissions
+      const duplicateCheck = await requestService.checkDuplicate(data.email)
+      if (duplicateCheck?.isDuplicate) {
+        setSubmitError('You already have an active request. Please wait for it to be reviewed before submitting another.')
+        setIsSubmitting(false)
+        return
+      }
+
+      // Build the full payload matching RequestFormData type
+      const payload = {
+        fullName: data.fullName,
+        email: data.email,
+        phone: data.phone,
+        schoolName: data.schoolName,
+        program: data.program,
+        studySemester: data.studySemester,
+        amount: data.amount,
+        currency: data.currency,
+        schoolAccountName: data.schoolAccountName,
+        schoolAccountNumber: data.schoolAccountNumber,
+        schoolSortCode: data.schoolSortCode || '',
+        schoolBankName: data.schoolBankName,
+        admissionLetter: admissionLetter,
+        feeInvoice: feeInvoice,
+        additionalNotes: data.additionalNotes || '',
+      }
+
+      const result = await requestService.submitRequest(payload as any)
+
+      if (result.success) {
+        handleClose()
+        navigate('/submitted')
+      } else {
+        setSubmitError(result.error || 'Submission failed. Please try again.')
+      }
+    } catch (err) {
+      console.error('Submission error:', err)
+      setSubmitError('An unexpected error occurred. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -184,7 +281,7 @@ export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
               transition={{ duration: 0.25, ease: 'easeOut' }}
               className="w-full sm:max-w-2xl"
             >
-              {/* Close — desktop (above card) */}
+              {/* Close — desktop */}
               <div className="hidden sm:flex justify-end mb-3">
                 <button
                   onClick={handleClose}
@@ -196,13 +293,30 @@ export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
 
               {/* Scrollable card */}
               <div className="max-h-[100dvh] sm:max-h-[82vh] overflow-y-auto scrollbar-hide sm:rounded-2xl rounded-t-2xl relative">
-                {/* Close — mobile (inside card) */}
+                {/* Close — mobile */}
                 <button
                   onClick={handleClose}
                   className="sm:hidden absolute top-4 right-4 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-muted/80 hover:bg-muted text-muted-foreground transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
+
+                {/* Error banner */}
+                {submitError && (
+                  <div className="mx-6 sm:mx-10 lg:mx-14 mt-4 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-red-800">{submitError}</p>
+                      <button
+                        type="button"
+                        onClick={() => setSubmitError(null)}
+                        className="text-xs text-red-600 hover:text-red-800 mt-1 underline"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <form onSubmit={handleSubmit(onSubmit)}>
                   <Stepper
@@ -224,7 +338,6 @@ export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
                             Let's start with your basic details
                           </p>
                         </div>
-
                         <div className="space-y-5">
                           <FormInput
                             label="Full Name"
@@ -264,7 +377,6 @@ export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
                             Tell us about your institution and program
                           </p>
                         </div>
-
                         <div className="space-y-5">
                           <FormInput
                             label="School Name"
@@ -309,7 +421,6 @@ export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
                             School fee amount and payment information
                           </p>
                         </div>
-
                         <div className="space-y-5">
                           <div className="grid grid-cols-2 gap-4">
                             <FormInput
@@ -353,6 +464,12 @@ export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
                             error={errors.schoolBankName?.message}
                             {...register('schoolBankName')}
                           />
+                          <FormInput
+                            label="Sort Code (optional)"
+                            placeholder="e.g. 011"
+                            error={errors.schoolSortCode?.message}
+                            {...register('schoolSortCode')}
+                          />
                         </div>
                       </div>
                     </Step>
@@ -365,58 +482,39 @@ export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
                             Upload Documents
                           </h2>
                           <p className="text-sm text-muted-foreground">
-                            Upload supporting documents (admission letter, fee breakdown, etc.)
+                            Upload supporting documents for your request
                           </p>
                         </div>
 
-                        {/* Upload zone */}
-                        <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-border/60 rounded-xl cursor-pointer hover:border-accent/50 hover:bg-accent/5 transition-all">
-                          <Upload className="w-8 h-8 text-muted-foreground/60 mb-2" />
-                          <span className="text-sm font-medium text-muted-foreground">
-                            Click to upload files
-                          </span>
-                          <span className="text-xs text-muted-foreground/60 mt-1">
-                            PDF, JPG, PNG — max 5MB each
-                          </span>
-                          <input
-                            type="file"
-                            multiple
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            className="hidden"
-                            onChange={handleFileChange}
-                          />
-                        </label>
-
-                        {/* File list */}
-                        {uploadedFiles.length > 0 && (
-                          <div className="space-y-2">
-                            {uploadedFiles.map((file, i) => (
-                              <div
-                                key={`${file.name}-${i}`}
-                                className="flex items-center justify-between px-4 py-3 rounded-xl bg-muted/30 border border-border/30"
-                              >
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <FileText className="w-5 h-5 text-accent flex-shrink-0" />
-                                  <div className="min-w-0">
-                                    <p className="text-sm font-medium text-foreground truncate">
-                                      {file.name}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {(file.size / 1024).toFixed(0)} KB
-                                    </p>
-                                  </div>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => removeFile(i)}
-                                  className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors flex-shrink-0"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            ))}
+                        <div className="space-y-5">
+                          {/* Admission Letter */}
+                          <div>
+                            <p className="text-sm font-semibold text-foreground mb-2">Admission Letter</p>
+                            <FileUploadCard
+                              label="Upload admission letter"
+                              description="PDF, JPG, PNG — max 5MB"
+                              file={admissionLetter}
+                              onFileChange={setAdmissionLetter}
+                              onRemove={() => setAdmissionLetter(null)}
+                            />
                           </div>
-                        )}
+
+                          {/* Fee Invoice */}
+                          <div>
+                            <p className="text-sm font-semibold text-foreground mb-2">Fee Invoice / Breakdown</p>
+                            <FileUploadCard
+                              label="Upload fee invoice"
+                              description="PDF, JPG, PNG — max 5MB"
+                              file={feeInvoice}
+                              onFileChange={setFeeInvoice}
+                              onRemove={() => setFeeInvoice(null)}
+                            />
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground/70">
+                          Documents help us verify and process your request faster. Both are optional but recommended.
+                        </p>
                       </div>
                     </Step>
 
@@ -442,23 +540,45 @@ export default function RequestModal({ isOpen, onClose }: RequestModalProps) {
                           <ReviewSection title="School">
                             <ReviewRow label="School" value={formValues.schoolName} />
                             <ReviewRow label="Program" value={formValues.program} />
-                            <ReviewRow label="Year" value={formValues.studySemester ? `Year ${formValues.studySemester}` : ''} />
+                            <ReviewRow
+                              label="Year"
+                              value={
+                                formValues.studySemester === 'postgraduate'
+                                  ? 'Postgraduate'
+                                  : formValues.studySemester
+                                    ? `Year ${formValues.studySemester}`
+                                    : ''
+                              }
+                            />
                           </ReviewSection>
 
                           <ReviewSection title="Payment">
-                            <ReviewRow label="Amount" value={formValues.amount ? `${formValues.currency} ${Number(formValues.amount).toLocaleString()}` : ''} />
+                            <ReviewRow
+                              label="Amount"
+                              value={
+                                formValues.amount
+                                  ? `${formValues.currency} ${Number(formValues.amount).toLocaleString()}`
+                                  : ''
+                              }
+                            />
                             <ReviewRow label="Account" value={formValues.schoolAccountName} />
                             <ReviewRow label="Account #" value={formValues.schoolAccountNumber} />
                             <ReviewRow label="Bank" value={formValues.schoolBankName} />
+                            {formValues.schoolSortCode && (
+                              <ReviewRow label="Sort Code" value={formValues.schoolSortCode} />
+                            )}
                           </ReviewSection>
 
-                          {uploadedFiles.length > 0 && (
-                            <ReviewSection title="Documents">
-                              {uploadedFiles.map((f, i) => (
-                                <ReviewRow key={i} label={`File ${i + 1}`} value={f.name} />
-                              ))}
-                            </ReviewSection>
-                          )}
+                          <ReviewSection title="Documents">
+                            <ReviewRow
+                              label="Admission Letter"
+                              value={admissionLetter?.name || 'Not uploaded'}
+                            />
+                            <ReviewRow
+                              label="Fee Invoice"
+                              value={feeInvoice?.name || 'Not uploaded'}
+                            />
+                          </ReviewSection>
                         </div>
 
                         {/* Additional notes */}
@@ -505,7 +625,9 @@ function ReviewRow({ label, value }: { label: string; value?: string }) {
   return (
     <div className="flex justify-between px-4 py-2.5">
       <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium text-foreground">{value || '—'}</span>
+      <span className="text-sm font-medium text-foreground text-right max-w-[60%] truncate">
+        {value || '—'}
+      </span>
     </div>
   )
 }
