@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { authService, type AuthUser } from '../features/auth/auth.service'
+import { supabase } from '../lib/supabase'
 
 interface AuthContextValue {
   user: AuthUser | null
@@ -18,16 +19,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Load session on mount
-    authService.getSession().then(({ user }) => {
-      setUser(user)
-      setIsLoading(false)
-    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) {
+        setUser(null)
+        setIsLoading(false)
+        return
+      }
 
-    // Listen for auth state changes
-    const { data: { subscription } } = authService.onAuthStateChange((user) => {
-      setUser(user)
+      // Set user immediately from session — no DB roundtrip, renders instantly
+      const baseUser: AuthUser = {
+        id: session.user.id,
+        email: session.user.email ?? '',
+        role: 'user',
+        full_name: '',
+      }
+      setUser(baseUser)
       setIsLoading(false)
+
+      // Fetch role in background, update when ready
+      authService.getProfileRole(session.user.id).then(({ role, full_name }) => {
+        setUser(u => u ? { ...u, role, full_name } : null)
+      })
     })
 
     return () => subscription?.unsubscribe()

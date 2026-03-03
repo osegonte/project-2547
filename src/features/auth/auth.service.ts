@@ -10,14 +10,24 @@ export interface AuthUser {
 }
 
 async function getProfileRole(userId: string): Promise<{ role: UserRole; full_name: string }> {
-  const { data } = await supabase
-    .from('profiles')
-    .select('role, full_name')
-    .eq('id', userId)
-    .single()
-  return {
-    role: (data?.role as UserRole) ?? 'user',
-    full_name: data?.full_name ?? '',
+  try {
+    const timeout = new Promise<null>((_, reject) =>
+      setTimeout(() => reject(new Error('Profile fetch timeout')), 4000)
+    )
+    const query = supabase
+      .from('profiles')
+      .select('role, full_name')
+      .eq('id', userId)
+      .single()
+      .then(({ data }) => data)
+
+    const data = await Promise.race([query, timeout])
+    return {
+      role: ((data as any)?.role as UserRole) ?? 'user',
+      full_name: (data as any)?.full_name ?? '',
+    }
+  } catch {
+    return { role: 'user', full_name: '' }
   }
 }
 
@@ -103,6 +113,7 @@ export async function resetPassword(
 
 // Named export object — used by AuthModal and AuthContext
 export const authService = {
+  getProfileRole,
   signUp,
   signIn,
   signOut,

@@ -9,10 +9,11 @@ type Tab = 'login' | 'signup'
 interface AuthModalProps {
   isOpen: boolean
   onClose: () => void
+  onSuccess?: () => void
   defaultTab?: Tab
 }
 
-export default function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'login' }: AuthModalProps) {
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>(defaultTab)
   const [email, setEmail] = useState('')
@@ -61,9 +62,15 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login' }: Aut
       return
     }
 
-    const path = authService.getRedirectPath(result.user!.role)
-    handleClose()
-    navigate(path)
+    const role = result.user!.role
+    if (role === 'admin' || role === 'super_admin') {
+      handleClose()
+      navigate('/admin/dashboard')
+    } else if (onSuccess) {
+      onSuccess()
+    } else {
+      handleClose()
+    }
     setIsLoading(false)
   }
 
@@ -91,11 +98,10 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login' }: Aut
       setVerificationSent(true)
     } else {
       // Auto-signed in (email confirmation disabled)
-      const session = await authService.getSession()
-      if (session.user) {
-        const path = authService.getRedirectPath(session.user.role)
+      if (onSuccess) {
+        onSuccess()
+      } else {
         handleClose()
-        navigate(path)
       }
     }
     setIsLoading(false)
