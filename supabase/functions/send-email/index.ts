@@ -271,7 +271,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`
       },
       body: JSON.stringify({
-        from: 'Hope Catalyst <onboarding@resend.dev>',
+        from: 'Hope Catalyst <hello@hopecatalyst.net>',
         to: [payload.to],
         subject,
         html
